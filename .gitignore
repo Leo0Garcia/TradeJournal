@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+build/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Database (local only)
+*.db
+*.db-shm
+*.db-wal
+
+# Misc
+.DS_Store
+*.pem
+npm-debug.log*
+.vercel
