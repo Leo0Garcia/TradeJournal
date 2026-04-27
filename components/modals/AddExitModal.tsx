@@ -1,27 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 import { formatCurrency } from '@/lib/utils';
 import type { Trade, NewExitInput } from '@/types';
+import { RotateCcw } from 'lucide-react';
 
 interface Props {
   trade: Trade | null;
   open: boolean;
   onClose: () => void;
   onSave: (tradeId: string, data: NewExitInput) => Promise<void>;
+  pointValue?: number;
 }
 
 const NOW = () => new Date().toISOString().slice(0, 16);
 
-export default function AddExitModal({ trade, open, onClose, onSave }: Props) {
+export default function AddExitModal({ trade, open, onClose, onSave, pointValue = 1 }: Props) {
   const [form, setForm] = useState({
     exit_price: '',
     size: '',
     exit_date: NOW(),
     notes: '',
   });
+  const [pnlOverride, setPnlOverride] = useState<string>('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setForm({ exit_price: '', size: '', exit_date: NOW(), notes: '' });
+      setPnlOverride('');
+    }
+  }, [open]);
 
   if (!trade) return null;
 
@@ -32,9 +42,12 @@ export default function AddExitModal({ trade, open, onClose, onSave }: Props) {
   const exitSize = parseFloat(form.size) || 0;
   const exitPrice = parseFloat(form.exit_price) || 0;
   const dirMultiplier = trade.direction === 'long' ? 1 : -1;
-  const estimatedPnl = exitSize > 0 && exitPrice > 0
-    ? (exitPrice - trade.entry_price) * exitSize * dirMultiplier
+  const autoPnl = exitSize > 0 && exitPrice > 0
+    ? (exitPrice - trade.entry_price) * exitSize * pointValue * dirMultiplier
     : null;
+
+  const displayPnl = pnlOverride !== '' ? parseFloat(pnlOverride) : autoPnl;
+  const isOverridden = pnlOverride !== '';
 
   const isFinalExit = exitSize >= trade.remaining_size;
 
@@ -48,9 +61,9 @@ export default function AddExitModal({ trade, open, onClose, onSave }: Props) {
         size: parseFloat(form.size),
         exit_date: form.exit_date,
         notes: form.notes,
+        pnl_override: isOverridden ? parseFloat(pnlOverride) : undefined,
       });
       onClose();
-      setForm({ exit_price: '', size: '', exit_date: NOW(), notes: '' });
     } finally {
       setLoading(false);
     }
@@ -134,18 +147,35 @@ export default function AddExitModal({ trade, open, onClose, onSave }: Props) {
           />
         </div>
 
-        {/* P&L preview */}
-        {estimatedPnl !== null && (
-          <div className={`rounded-xl p-3 border ${estimatedPnl >= 0 ? 'bg-profit-muted border-profit/20' : 'bg-loss-muted border-loss/20'}`}>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-zinc-400">Estimated P&L (excl. fees)</span>
-              <span className={`font-mono font-bold text-sm ${estimatedPnl >= 0 ? 'text-profit-text' : 'text-loss-text'}`}>
-                {estimatedPnl >= 0 ? '+' : ''}{formatCurrency(estimatedPnl)}
+        {/* P&L — editable */}
+        {autoPnl !== null && (
+          <div className={`rounded-xl p-3 border ${(displayPnl ?? 0) >= 0 ? 'bg-profit-muted border-profit/20' : 'bg-loss-muted border-loss/20'}`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs text-zinc-400">
+                {isOverridden ? 'P&L (manual)' : 'Estimated P&L'}
               </span>
+              {isOverridden && (
+                <button
+                  type="button"
+                  onClick={() => setPnlOverride('')}
+                  className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  <RotateCcw size={10} /> Reset to auto
+                </button>
+              )}
             </div>
-            {isFinalExit && (
-              <div className="text-xs text-zinc-500 mt-1">This will close the trade</div>
-            )}
+            <input
+              type="number"
+              step="any"
+              value={isOverridden ? pnlOverride : autoPnl.toFixed(2)}
+              onChange={e => setPnlOverride(e.target.value)}
+              onFocus={e => { if (!isOverridden) { setPnlOverride(autoPnl.toFixed(2)); e.target.select(); } }}
+              className={`w-full bg-transparent font-mono font-bold text-xl focus:outline-none ${(displayPnl ?? 0) >= 0 ? 'text-profit-text' : 'text-loss-text'}`}
+            />
+            <div className="flex items-center justify-between mt-1">
+              {!isOverridden && <span className="text-[11px] text-zinc-600">Click the value to override</span>}
+              {isFinalExit && <span className="text-xs text-zinc-500 ml-auto">This will close the trade</span>}
+            </div>
           </div>
         )}
 

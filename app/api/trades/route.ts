@@ -4,8 +4,10 @@ import type { NewTradeInput } from '@/types';
 
 function transformTrade(raw: Record<string, unknown>) {
   const tt = (raw.trade_tags as { tags: unknown }[] | null) ?? [];
+  const { accounts, ...rest } = raw;
   return {
-    ...raw,
+    ...rest,
+    account: accounts ?? null,
     tags: tt.map(t => t.tags).filter(Boolean),
     trade_tags: undefined,
   };
@@ -17,7 +19,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from('trades')
-    .select('*, exits(*), trade_tags(tags(*))')
+    .select('*, exits(*), trade_tags(tags(*)), accounts(id,name,broker,currency)')
     .order('trade_date', { ascending: false })
     .order('created_at', { ascending: false });
 
@@ -26,6 +28,8 @@ export async function GET(req: NextRequest) {
   const direction = searchParams.get('direction');
   const from = searchParams.get('from');
   const to = searchParams.get('to');
+  const accountId = searchParams.get('account_id');
+  const accountType = searchParams.get('account_type');
 
   if (status && status !== 'all') query = query.eq('status', status);
   if (symbol) query = query.eq('symbol', symbol);
@@ -33,10 +37,22 @@ export async function GET(req: NextRequest) {
   if (from) query = query.gte('trade_date', from);
   if (to) query = query.lte('trade_date', to + 'T23:59:59Z');
 
+  if (accountId) {
+    query = query.eq('account_id', accountId);
+  } else if (accountType) {
+    const { data: typeAccounts } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('account_type', accountType);
+    const ids = (typeAccounts ?? []).map((a: { id: string }) => a.id);
+    if (ids.length === 0) return NextResponse.json([]);
+    query = query.in('account_id', ids);
+  }
+
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json((data ?? []).map(transformTrade));
+  return NextResponse.json((data ?? []).map(row => transformTrade(row as Record<string, unknown>)));
 }
 
 export async function POST(req: NextRequest) {
@@ -50,6 +66,7 @@ export async function POST(req: NextRequest) {
     .from('trades')
     .insert({
       user_id: user.id,
+      account_id: body.account_id ?? null,
       symbol: body.symbol,
       direction: body.direction,
       trade_date: body.trade_date,
@@ -76,7 +93,7 @@ export async function POST(req: NextRequest) {
 
   const { data: full } = await supabase
     .from('trades')
-    .select('*, exits(*), trade_tags(tags(*))')
+    .select('*, exits(*), trade_tags(tags(*)), accounts(id,name,broker,currency)')
     .eq('id', trade.id)
     .single();
 

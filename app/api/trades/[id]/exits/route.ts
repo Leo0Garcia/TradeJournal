@@ -14,7 +14,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Fetch current trade
   const { data: trade, error: tradeErr } = await supabase
     .from('trades')
-    .select('*, instruments(point_value)')
+    .select('*')
     .eq('id', params.id)
     .single();
 
@@ -29,7 +29,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const pointValue = instrument?.point_value ?? 1;
   const dirMultiplier = trade.direction === 'long' ? 1 : -1;
-  const pnl = (body.exit_price - trade.entry_price) * body.size * pointValue * dirMultiplier;
+  const calculatedPnl = (body.exit_price - trade.entry_price) * body.size * pointValue * dirMultiplier;
+  const pnl = body.pnl_override ?? calculatedPnl;
 
   const newRemaining = Math.max(0, trade.remaining_size - body.size);
   const newGrossPnl = trade.gross_pnl + pnl;

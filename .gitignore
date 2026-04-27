@@ -23,3 +23,6 @@ build/
 *.pem
 npm-debug.log*
 .vercel
+
+# Graphify outputs (local only)
+graphify-out/

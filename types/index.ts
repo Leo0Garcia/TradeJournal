@@ -1,5 +1,6 @@
 export type Direction = 'long' | 'short';
 export type TradeStatus = 'open' | 'closed';
+export type AccountType = 'live' | 'funded' | 'demo';
 
 export interface Tag {
   id: string;
@@ -12,6 +13,18 @@ export interface Instrument {
   name: string;
   category: 'futures' | 'crypto' | 'forex' | 'stock';
   point_value: number;
+}
+
+export interface Account {
+  id: string;
+  user_id: string;
+  name: string;
+  broker: string | null;
+  description: string | null;
+  currency: string;
+  account_type: AccountType;
+  account_size: number | null;
+  created_at: string;
 }
 
 export interface Exit {
@@ -27,6 +40,8 @@ export interface Exit {
 
 export interface Trade {
   id: string;
+  account_id: string | null;
+  account?: Account | null;
   symbol: string;
   direction: Direction;
   status: TradeStatus;
@@ -63,6 +78,7 @@ export interface DashboardStats {
 }
 
 export interface NewTradeInput {
+  account_id?: string;
   symbol: string;
   direction: Direction;
   trade_date: string;
@@ -80,6 +96,7 @@ export interface NewExitInput {
   size: number;
   exit_date: string;
   notes?: string;
+  pnl_override?: number;
 }
 
 export interface PnLByTicker {
@@ -102,3 +119,8 @@ export interface TagPerformance {
   winRate: number;
   totalPnl: number;
 }
+
+// Account selection: a specific account or all accounts of a given type
+export type AccountSelection =
+  | { type: 'account'; id: string }
+  | { type: 'account_type'; accountType: AccountType };

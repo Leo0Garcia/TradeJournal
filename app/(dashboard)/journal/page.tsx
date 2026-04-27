@@ -7,12 +7,14 @@ import NewTradeModal from '@/components/modals/NewTradeModal';
 import AddExitModal from '@/components/modals/AddExitModal';
 import TradeDetailPanel from '@/components/journal/TradeDetailPanel';
 import { formatCurrency, formatDate, pnlColor, cn } from '@/lib/utils';
+import { useAccount } from '@/contexts/AccountContext';
 import type { Trade, Tag, Instrument, NewTradeInput, NewExitInput } from '@/types';
 
 type SortKey = 'trade_date' | 'symbol' | 'net_pnl' | 'initial_size';
 type SortDir = 'asc' | 'desc';
 
 export default function JournalPage() {
+  const { accountParams, selection, accounts, loaded, mustSelectAccount } = useAccount();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [instruments, setInstruments] = useState<Instrument[]>([]);
@@ -33,8 +35,10 @@ export default function JournalPage() {
   const [sortKey, setSortKey] = useState<SortKey>('trade_date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
+  const accountParamsStr = accountParams.toString();
+
   const load = useCallback(async () => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(accountParamsStr);
     if (statusFilter !== 'all') params.set('status', statusFilter);
     if (symbolFilter !== 'all') params.set('symbol', symbolFilter);
     if (dirFilter !== 'all') params.set('direction', dirFilter);
@@ -49,7 +53,7 @@ export default function JournalPage() {
     setTrades(tradesData);
     setAllTags(tagsData);
     setInstruments(instrData);
-  }, [statusFilter, symbolFilter, dirFilter, fromDate, toDate]);
+  }, [accountParamsStr, statusFilter, symbolFilter, dirFilter, fromDate, toDate]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -161,12 +165,20 @@ export default function JournalPage() {
           <h1 className="text-xl font-bold text-zinc-100">Trade Journal</h1>
           <p className="text-sm text-zinc-500 mt-0.5">{filtered.length} of {trades.length} trades</p>
         </div>
-        <button
-          onClick={() => setShowNewTrade(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-accent/25"
-        >
-          <Plus size={15} /> New Trade
-        </button>
+        <div className="relative group">
+          <button
+            onClick={() => !mustSelectAccount && setShowNewTrade(true)}
+            disabled={mustSelectAccount}
+            className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-accent/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+          >
+            <Plus size={15} /> New Trade
+          </button>
+          {mustSelectAccount && loaded && (
+            <div className="absolute right-0 top-full mt-2 w-52 px-3 py-2 bg-bg-elevated border border-border rounded-xl text-xs text-zinc-400 shadow-xl z-10 hidden group-hover:block">
+              {accounts.length === 0 ? 'Create an account in Settings first' : 'Select a specific account first'}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -372,6 +384,7 @@ export default function JournalPage() {
         open={!!exitTrade}
         onClose={() => setExitTrade(null)}
         onSave={handleAddExit}
+        pointValue={exitTrade ? (instruments.find(i => i.symbol === exitTrade.symbol)?.point_value ?? 1) : 1}
       />
       {detailTrade && (
         <TradeDetailPanel

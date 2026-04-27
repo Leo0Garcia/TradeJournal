@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 import TagBadge from '@/components/ui/TagBadge';
 import { TAG_COLORS } from '@/lib/utils';
+import { useAccount, ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_COLORS } from '@/contexts/AccountContext';
 import type { Tag, Instrument, NewTradeInput } from '@/types';
 import { Plus, ChevronDown } from 'lucide-react';
 
@@ -16,9 +17,13 @@ interface Props {
 const TODAY = new Date().toISOString().slice(0, 16);
 
 export default function NewTradeModal({ open, onClose, onSave }: Props) {
+  const { accounts, selection } = useAccount();
   const [instruments, setInstruments] = useState<Instrument[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Pre-select account from context if one is selected
+  const defaultAccountId = selection.type === 'account' ? selection.id : '';
 
   const [form, setForm] = useState({
     symbol: 'MNQ',
@@ -30,6 +35,7 @@ export default function NewTradeModal({ open, onClose, onSave }: Props) {
     take_profit: '',
     notes: '',
     fees: '',
+    account_id: defaultAccountId,
   });
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagSearch, setTagSearch] = useState('');
@@ -48,7 +54,9 @@ export default function NewTradeModal({ open, onClose, onSave }: Props) {
       setInstruments(instr);
       setAllTags(tags);
     });
-  }, [open]);
+    // Update account_id default when modal opens
+    setForm(f => ({ ...f, account_id: defaultAccountId }));
+  }, [open, defaultAccountId]);
 
   function set(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }));
@@ -60,12 +68,13 @@ export default function NewTradeModal({ open, onClose, onSave }: Props) {
     );
   }
 
-  async function createTag() {
-    if (!newTagName.trim()) return;
+  async function createTag(nameOverride?: string) {
+    const name = (nameOverride ?? newTagName).trim();
+    if (!name) return;
     const res = await fetch('/api/tags', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newTagName.trim(), color: newTagColor }),
+      body: JSON.stringify({ name, color: newTagColor }),
     });
     const tag = await res.json();
     setAllTags(t => [...t, tag]);
@@ -76,9 +85,11 @@ export default function NewTradeModal({ open, onClose, onSave }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.entry_price || !form.initial_size) return;
+    if (accounts.length > 0 && !form.account_id) return;
     setLoading(true);
     try {
       await onSave({
+        account_id: form.account_id || undefined,
         symbol: showCustom ? customSymbol.toUpperCase() : form.symbol,
         direction: form.direction,
         trade_date: form.trade_date,
@@ -91,7 +102,7 @@ export default function NewTradeModal({ open, onClose, onSave }: Props) {
         tag_ids: selectedTagIds,
       });
       onClose();
-      setForm({ symbol: 'MNQ', direction: 'long', trade_date: TODAY, entry_price: '', initial_size: '', stop_loss: '', take_profit: '', notes: '', fees: '' });
+      setForm({ symbol: 'MNQ', direction: 'long', trade_date: TODAY, entry_price: '', initial_size: '', stop_loss: '', take_profit: '', notes: '', fees: '', account_id: defaultAccountId });
       setSelectedTagIds([]);
     } finally {
       setLoading(false);
@@ -112,6 +123,36 @@ export default function NewTradeModal({ open, onClose, onSave }: Props) {
   return (
     <Modal open={open} onClose={onClose} title="New Trade" subtitle="Log a new trade entry" size="lg">
       <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Account selector (always shown) */}
+        <div>
+          <label className="block text-xs font-medium text-zinc-400 mb-1.5">Account <span className="text-loss text-[10px]">required</span></label>
+          {accounts.length === 0 ? (
+            <div className="w-full bg-bg-overlay border border-border rounded-lg px-3 py-2 text-sm text-zinc-600 flex items-center justify-between">
+              <span>No accounts yet</span>
+              <a href="/settings" className="text-accent hover:text-accent-light text-xs font-medium transition-colors">
+                Create one in Settings →
+              </a>
+            </div>
+          ) : (
+            <div className="relative">
+              <select
+                value={form.account_id}
+                onChange={e => set('account_id', e.target.value)}
+                required
+                className="w-full bg-bg-overlay border border-border rounded-lg px-3 py-2 text-sm text-zinc-100 appearance-none focus:outline-none focus:border-accent pr-8"
+              >
+                <option value="" disabled>— Select account —</option>
+                {accounts.map(a => (
+                  <option key={a.id} value={a.id}>
+                    [{ACCOUNT_TYPE_LABELS[a.account_type]}] {a.name}{a.broker ? ` · ${a.broker}` : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+            </div>
+          )}
+        </div>
+
         {/* Symbol + Direction */}
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -292,7 +333,6 @@ export default function NewTradeModal({ open, onClose, onSave }: Props) {
                     <p className="text-xs text-zinc-600 px-2 py-1">No more tags to add</p>
                   )}
                 </div>
-                {/* Create new tag */}
                 {tagSearch && (
                   <div className="mt-2 pt-2 border-t border-border">
                     <div className="flex items-center gap-2">
@@ -315,7 +355,7 @@ export default function NewTradeModal({ open, onClose, onSave }: Props) {
                       </div>
                       <button
                         type="button"
-                        onClick={async () => { setNewTagName(tagSearch); await createTag(); setTagSearch(''); setShowTagDropdown(false); }}
+                        onClick={async () => { await createTag(tagSearch); setTagSearch(''); setShowTagDropdown(false); }}
                         className="flex items-center gap-1 px-2 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs rounded-lg font-medium transition-colors"
                       >
                         <Plus size={12} /> Create

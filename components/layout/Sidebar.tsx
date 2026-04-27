@@ -5,10 +5,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, BookOpen, BarChart2, TrendingUp,
-  Settings, Zap, LogOut, User,
+  Settings, Zap, LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import AccountSwitcher from './AccountSwitcher';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const navItems = [
@@ -71,6 +72,9 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Account switcher */}
+      <AccountSwitcher />
 
       {/* Market indicator */}
       <div className="px-4 py-3 mx-3 mb-3 rounded-lg bg-bg-elevated border border-border">

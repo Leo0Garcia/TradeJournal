@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import StatCard from '@/components/ui/StatCard';
 import { formatCurrency, formatPercent, pnlColor } from '@/lib/utils';
+import { useAccount } from '@/contexts/AccountContext';
 import type { DashboardStats, PnLByTicker, PnLByDay, TagPerformance } from '@/types';
 import { TrendingDown, Calendar, Tag, BarChart2 } from 'lucide-react';
 
@@ -29,12 +30,13 @@ const CUSTOM_TOOLTIP_STYLE = {
 };
 
 export default function AnalyticsPage() {
+  const { accountParams } = useAccount();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [period, setPeriod] = useState<'all' | '30d' | '7d'>('all');
 
   useEffect(() => {
-    fetch('/api/analytics').then(r => r.json()).then(setData);
-  }, []);
+    fetch(`/api/analytics?${accountParams}`).then(r => r.json()).then(setData);
+  }, [accountParams]);
 
   const stats = data?.stats;
 
