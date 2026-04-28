@@ -103,7 +103,7 @@ export default function PricingPage() {
             <div className="mb-6 relative">
               <div className="text-xs font-semibold uppercase tracking-widest text-accent-light mb-2">Pro</div>
               <div className="flex items-end gap-1">
-                <span className="text-4xl font-bold text-zinc-100">$29</span>
+                <span className="text-4xl font-bold text-zinc-100">$14.99</span>
                 <span className="text-zinc-500 text-sm mb-1.5">/ month</span>
               </div>
               <p className="text-zinc-500 text-xs mt-2">Billed monthly. Cancel anytime.</p>

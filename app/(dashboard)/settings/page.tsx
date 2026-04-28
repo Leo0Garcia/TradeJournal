@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import {
   Plus, Trash2, Pencil, Check, X, AlertTriangle,
   Moon, Sun, User, CreditCard, Palette, Tag as TagIcon,
-  Briefcase, BookOpen, ChevronRight, Lock, Zap,
+  Briefcase, BookOpen, ChevronRight, Lock, Zap, Camera, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ACCENT_PRESETS, applyTheme, type AccentColor, type ThemeMode } from '@/components/ThemeProvider';
@@ -104,12 +104,69 @@ function SettingsPage() {
   const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
   const [accentColor, setAccentColor] = useState<AccentColor>('purple');
 
+  // Profile editing
+  const [profileName, setProfileName] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
   useEffect(() => {
     setThemeMode((localStorage.getItem('theme-mode') as ThemeMode) ?? 'dark');
     setAccentColor((localStorage.getItem('theme-accent') as AccentColor) ?? 'purple');
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      setProfileName(user?.user_metadata?.full_name || user?.email?.split('@')[0] || '');
+    });
   }, []);
+
+  async function saveProfile() {
+    setProfileSaving(true);
+    setProfileError('');
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.updateUser({
+      data: { full_name: profileName.trim() },
+    });
+    if (error) {
+      setProfileError(error.message);
+    } else {
+      setUser(data.user);
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2500);
+    }
+    setProfileSaving(false);
+  }
+
+  async function uploadAvatar(file: File) {
+    setAvatarUploading(true);
+    setProfileError('');
+    try {
+      const supabase = createClient();
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) throw new Error('Not authenticated');
+
+      const ext = file.name.split('.').pop();
+      const path = `${currentUser.id}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+      const avatarUrl = urlData.publicUrl + `?t=${Date.now()}`;
+
+      const { data, error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: avatarUrl },
+      });
+      if (updateError) throw updateError;
+      setUser(data.user);
+    } catch (err: unknown) {
+      setProfileError(err instanceof Error ? err.message : 'Upload failed');
+    }
+    setAvatarUploading(false);
+  }
 
   // Respect ?section= query param
   useEffect(() => {
@@ -235,32 +292,86 @@ function SettingsPage() {
               {/* Profile card */}
               <div className="bg-bg-surface border border-border rounded-xl p-5">
                 <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">Profile</h3>
-                <div className="flex items-center gap-4 mb-5">
-                  <div className="w-12 h-12 rounded-xl bg-accent/20 border border-accent/30 flex items-center justify-center shrink-0">
-                    {user?.user_metadata?.avatar_url
-                      ? <img src={user.user_metadata.avatar_url} alt="" className="w-12 h-12 rounded-xl object-cover" />
-                      : <span className="text-lg font-bold text-accent-light">{avatarLetter}</span>
-                    }
+
+                {/* Avatar */}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative group shrink-0">
+                    <div className="w-16 h-16 rounded-xl bg-accent/20 border border-accent/30 flex items-center justify-center overflow-hidden">
+                      {user?.user_metadata?.avatar_url
+                        ? <img src={user.user_metadata.avatar_url} alt="" className="w-16 h-16 object-cover" />
+                        : <span className="text-2xl font-bold text-accent-light">{avatarLetter}</span>
+                      }
+                      {avatarUploading && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-xl">
+                          <Loader2 size={18} className="text-white animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                    <label className={cn(
+                      'absolute inset-0 flex items-center justify-center rounded-xl cursor-pointer transition-all',
+                      'bg-black/0 group-hover:bg-black/50',
+                      avatarUploading && 'pointer-events-none'
+                    )}>
+                      <Camera size={16} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadAvatar(file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-zinc-100">{displayName}</div>
-                    <div className="text-xs text-zinc-500">{user?.email}</div>
-                    <div className="mt-1 inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-zinc-700/50 text-zinc-400 border border-zinc-600/40 font-medium uppercase tracking-wide">
+                    <div className="text-xs text-zinc-500 mb-1.5">{user?.email}</div>
+                    <div className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-zinc-700/50 text-zinc-400 border border-zinc-600/40 font-medium uppercase tracking-wide">
                       Free Plan
                     </div>
+                    <p className="text-[11px] text-zinc-600 mt-1.5">Click avatar to upload a new photo</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+
+                {/* Editable fields */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
                     <label className="block text-xs text-zinc-500 mb-1.5">Display Name</label>
-                    <input defaultValue={displayName} className={inputCls} disabled />
+                    <input
+                      value={profileName}
+                      onChange={e => setProfileName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && saveProfile()}
+                      placeholder="Your name"
+                      className={inputCls}
+                    />
                   </div>
                   <div>
                     <label className="block text-xs text-zinc-500 mb-1.5">Email</label>
-                    <input defaultValue={user?.email ?? ''} className={inputCls} disabled />
+                    <input value={user?.email ?? ''} className={cn(inputCls, 'opacity-50 cursor-not-allowed')} disabled />
                   </div>
                 </div>
-                <p className="text-[11px] text-zinc-600 mt-3">Profile details are managed through your auth provider.</p>
+
+                {profileError && (
+                  <p className="text-xs text-loss mb-3">{profileError}</p>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={saveProfile}
+                    disabled={profileSaving || !profileName.trim()}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-40"
+                  >
+                    {profileSaving
+                      ? <><Loader2 size={12} className="animate-spin" /> Saving...</>
+                      : profileSaved
+                      ? <><Check size={12} /> Saved</>
+                      : 'Save Changes'
+                    }
+                  </button>
+                  <p className="text-[11px] text-zinc-600">Email changes are managed through your auth provider.</p>
+                </div>
               </div>
 
               {/* Instrument reference */}
@@ -561,7 +672,7 @@ function SettingsPage() {
                     ))}
                   </ul>
                   <button disabled className="w-full py-2.5 rounded-xl bg-accent/20 text-sm font-semibold text-accent-light/50 flex items-center justify-center gap-2 cursor-not-allowed">
-                    <Lock size={13} /> Available soon — $29 / month
+                    <Lock size={13} /> Available soon — $14.99 / month
                   </button>
                 </div>
               </div>
