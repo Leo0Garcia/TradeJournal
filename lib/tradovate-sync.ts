@@ -1,5 +1,6 @@
 import { createClient as createServiceClient, SupabaseClient } from '@supabase/supabase-js';
 import { TradovateClient, TradovateEnvironment, baseSymbol } from './tradovate';
+import { decrypt } from './encryption';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ServiceDb = SupabaseClient<any, any, any>;
@@ -38,7 +39,7 @@ async function getOrRefreshToken(conn: Connection, db: ServiceDb): Promise<{ tok
 
   // Try refresh token first (silent renewal — no user action needed)
   if (conn.refresh_token) {
-    const env = conn.environment ?? 'demo';
+    const env = conn.environment ?? 'live';
     const refreshed = await TradovateClient.refreshOAuthToken(conn.refresh_token, env);
     await db.from('tradovate_connections').update({
       access_token: refreshed.accessToken,
@@ -49,7 +50,20 @@ async function getOrRefreshToken(conn: Connection, db: ServiceDb): Promise<{ tok
     return { token: refreshed.accessToken, expires: refreshed.expirationTime };
   }
 
-  // No refresh token — user must reconnect via OAuth in Settings
+  // Re-authenticate using stored credentials
+  if (conn.encrypted_username && conn.encrypted_password && conn.device_id) {
+    const env = conn.environment ?? 'live';
+    const username = decrypt(conn.encrypted_username);
+    const password = decrypt(conn.encrypted_password);
+    const auth = await TradovateClient.authenticate(username, password, env, conn.device_id);
+    await db.from('tradovate_connections').update({
+      access_token: auth.accessToken,
+      token_expires_at: auth.expirationTime,
+      sync_error: null,
+    }).eq('id', conn.id);
+    return { token: auth.accessToken, expires: auth.expirationTime };
+  }
+
   throw new Error('Token expired — reconnect Tradovate in Settings');
 }
 

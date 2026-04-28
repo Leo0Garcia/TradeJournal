@@ -18,6 +18,10 @@ const OAUTH_TOKEN_URLS: Record<TradovateEnvironment, string> = {
 const CLIENT_ID = process.env.TRADOVATE_CLIENT_ID ?? '1';
 const CLIENT_SECRET = process.env.TRADOVATE_CLIENT_SECRET ?? 'd369b9733404dabf4c0a1bf70ca7227769887d09d8d1d6cfa3f23326d6203297';
 
+// Web app credentials — same for all users, embedded in Tradovate's JS bundle
+const APP_ID = 'tradovate_trader(web)';
+const APP_VERSION = '3.260424.1';
+
 export interface TradovateTokenResponse {
   accessToken: string;
   expirationTime: string;
@@ -63,6 +67,50 @@ export class TradovateClient {
   constructor(token: string, environment: TradovateEnvironment = 'demo') {
     this.token = token;
     this.baseUrl = BASE_URLS[environment];
+  }
+
+  // ── Password auth ─────────────────────────────────────────────────────────
+
+  static async authenticate(
+    username: string,
+    password: string,
+    environment: TradovateEnvironment,
+    deviceId: string,
+  ): Promise<{ accessToken: string; expirationTime: string; mdAccessToken?: string }> {
+    const url = `${BASE_URLS[environment]}/auth/accesstokenrequest`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: username,
+        password,
+        appId: APP_ID,
+        appVersion: APP_VERSION,
+        cid: CLIENT_ID,
+        sec: CLIENT_SECRET,
+        deviceId,
+      }),
+    });
+
+    const data = await res.json();
+
+    // Tradovate returns p-ticket (captcha required) or o-ticket (MFA) in some flows
+    if (data['p-ticket'] || data['o-ticket']) {
+      throw new Error('Tradovate requires additional verification — try logging in via the Tradovate website first to clear any security check, then retry.');
+    }
+    if (!res.ok || data.errorText || !data.accessToken) {
+      throw new Error(data.errorText ?? `Authentication failed (${res.status})`);
+    }
+
+    const expiresInMs = data.expirationTime
+      ? new Date(data.expirationTime).getTime() - Date.now()
+      : 3600 * 1000;
+
+    return {
+      accessToken: data.accessToken,
+      expirationTime: new Date(Date.now() + expiresInMs).toISOString(),
+      mdAccessToken: data.mdAccessToken ?? undefined,
+    };
   }
 
   // ── OAuth helpers ──────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Pencil, Check, X, Unlink, RefreshCw, Wifi, WifiOff, AlertTriangle, CheckCircle2, Moon, Sun } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X, Unlink, RefreshCw, Wifi, AlertTriangle, CheckCircle2, Moon, Sun } from 'lucide-react';
 import { ACCENT_PRESETS, applyTheme, type AccentColor, type ThemeMode } from '@/components/ThemeProvider';
 import { TAG_COLORS, getTagColorStyle, cn } from '@/lib/utils';
 import { useAccount, ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_COLORS } from '@/contexts/AccountContext';
@@ -202,9 +202,28 @@ function SettingsPage() {
     });
   }
 
-  // Tradovate actions
-  function connectTradovate(environment: 'demo' | 'live') {
-    window.location.href = `/api/integrations/tradovate/authorize?environment=${environment}`;
+  // Tradovate credentials form
+  const [tvForm, setTvForm] = useState({ username: '', password: '', environment: 'live' as 'live' | 'demo' });
+  const [tvConnecting, setTvConnecting] = useState(false);
+
+  async function connectTradovate() {
+    if (!tvForm.username.trim() || !tvForm.password.trim()) return;
+    setTvConnecting(true);
+    setTvNotice(null);
+    const res = await fetch('/api/integrations/tradovate/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tvForm),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setTvNotice({ type: 'error', msg: data.error ?? 'Connection failed' });
+    } else {
+      setTvForm({ username: '', password: '', environment: 'live' });
+      setTvNotice({ type: 'ok', msg: `Connected! Found ${data.accounts} account${data.accounts !== 1 ? 's' : ''} — link below.` });
+      await loadTvConnections();
+    }
+    setTvConnecting(false);
   }
 
   async function linkTvAccount(connectionId: string, accountId: string | null) {
@@ -411,21 +430,6 @@ function SettingsPage() {
             </p>
           </div>
 
-          {/* API registration notice */}
-          <div className="flex items-start gap-2.5 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl mb-4 text-xs">
-            <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
-            <div className="text-zinc-400 space-y-1">
-              <p>
-                <span className="text-zinc-200 font-medium">API access required.</span>{' '}
-                Tradovate requires a registered developer account before OAuth can connect to a third-party app.
-              </p>
-              <p>
-                Email <span className="text-zinc-200 font-mono">api@tradovate.com</span> with your app name and redirect URI:{' '}
-                <span className="text-zinc-300 font-mono break-all">https://trade-journal-five-mu.vercel.app/api/integrations/tradovate/callback</span>
-              </p>
-              <p>Once they send you a <span className="text-zinc-200">client_id</span> and <span className="text-zinc-200">client_secret</span>, add them as <span className="font-mono">TRADOVATE_CLIENT_ID</span> and <span className="font-mono">TRADOVATE_CLIENT_SECRET</span> in your Vercel environment variables and the buttons below will work.</p>
-            </div>
-          </div>
 
           {/* OAuth result notice */}
           {tvNotice && (
@@ -469,7 +473,7 @@ function SettingsPage() {
                       </div>
                     </div>
                     {needsReconnect && (
-                      <button onClick={() => connectTradovate(conn.environment ?? 'demo')}
+                      <button onClick={() => { setTvNotice({ type: 'error', msg: 'Re-enter your credentials below to reconnect.' }); }}
                         className="px-2 py-1 text-[11px] bg-accent/20 text-accent-light border border-accent/30 rounded-lg hover:bg-accent/30 transition-colors">
                         Reconnect
                       </button>
@@ -500,26 +504,58 @@ function SettingsPage() {
             </div>
           )}
 
-          {/* Connect buttons */}
-          <div className="space-y-2">
-            {tvConnections.length === 0 && (
-              <p className="text-xs text-zinc-500 mb-3">
-                You&apos;ll be taken to Tradovate to log in — no passwords are stored here.
-              </p>
-            )}
+          {/* Connect form */}
+          <div className="space-y-3 p-4 bg-bg-overlay rounded-xl border border-border">
+            <p className="text-xs text-zinc-500">Enter your Tradovate login credentials. They are encrypted before storage and never shared.</p>
+            {/* Environment toggle */}
             <div className="flex gap-2">
-              <button onClick={() => connectTradovate('live')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-medium rounded-lg transition-colors">
-                <Wifi size={12} /> Connect Prop Firm / Live
-              </button>
-              <button onClick={() => connectTradovate('demo')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 border border-border text-zinc-300 hover:text-zinc-100 hover:border-border-strong text-xs font-medium rounded-lg transition-colors">
-                <Wifi size={12} /> Connect Demo (Paper Trading)
-              </button>
+              {(['live', 'demo'] as const).map(env => (
+                <button key={env} type="button"
+                  onClick={() => setTvForm(f => ({ ...f, environment: env }))}
+                  className={cn(
+                    'flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all',
+                    tvForm.environment === env
+                      ? 'border-accent bg-accent/10 text-accent-light'
+                      : 'border-border text-zinc-500 hover:text-zinc-300 hover:border-border-strong'
+                  )}>
+                  {env === 'live' ? 'Prop Firm / Live' : 'Demo (Paper Trading)'}
+                </button>
+              ))}
             </div>
-            <p className="text-[11px] text-zinc-600">
-              Prop Firm / Live — for Lucid, Apex, Topstep etc. &nbsp;·&nbsp; Demo — Tradovate&apos;s own paper trading only
+            <p className="text-[11px] text-zinc-600 -mt-1">
+              Lucid, Apex, Topstep → <span className="text-zinc-400">Prop Firm / Live</span> &nbsp;·&nbsp; Tradovate paper trading → <span className="text-zinc-400">Demo</span>
             </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Tradovate Username</label>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  value={tvForm.username}
+                  onChange={e => setTvForm(f => ({ ...f, username: e.target.value }))}
+                  placeholder="your@email.com"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Password</label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={tvForm.password}
+                  onChange={e => setTvForm(f => ({ ...f, password: e.target.value }))}
+                  placeholder="••••••••"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+            <button
+              onClick={connectTradovate}
+              disabled={!tvForm.username.trim() || !tvForm.password.trim() || tvConnecting}
+              className="w-full flex items-center justify-center gap-2 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-40">
+              <Wifi size={12} />
+              {tvConnecting ? 'Connecting…' : 'Connect Tradovate'}
+            </button>
           </div>
         </section>
       )}
