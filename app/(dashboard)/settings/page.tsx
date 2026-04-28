@@ -407,7 +407,7 @@ function SettingsPage() {
           <div className="mb-4">
             <h2 className="text-sm font-semibold text-zinc-200">Tradovate Integration</h2>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Auto-import trades from Tradovate into your funded accounts.
+              Auto-import trades from Tradovate. Prop firm accounts (Lucid, Apex, Topstep, etc.) use the <span className="text-zinc-300 font-medium">Prop Firm / Live</span> connection.
             </p>
           </div>
 
@@ -492,17 +492,17 @@ function SettingsPage() {
               </p>
             )}
             <div className="flex gap-2">
-              <button onClick={() => connectTradovate('demo')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-medium rounded-lg transition-colors">
-                <Wifi size={12} /> Connect Demo / Prop Firm
-              </button>
               <button onClick={() => connectTradovate('live')}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-medium rounded-lg transition-colors">
+                <Wifi size={12} /> Connect Prop Firm / Live
+              </button>
+              <button onClick={() => connectTradovate('demo')}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 border border-border text-zinc-300 hover:text-zinc-100 hover:border-border-strong text-xs font-medium rounded-lg transition-colors">
-                <Wifi size={12} /> Connect Live Account
+                <Wifi size={12} /> Connect Demo (Paper Trading)
               </button>
             </div>
             <p className="text-[11px] text-zinc-600">
-              Demo / Prop Firm — for Lucid, Apex, FTMO etc. &nbsp;·&nbsp; Live — for your personal Tradovate account
+              Prop Firm / Live — for Lucid, Apex, Topstep etc. &nbsp;·&nbsp; Demo — Tradovate&apos;s own paper trading only
             </p>
           </div>
         </section>
