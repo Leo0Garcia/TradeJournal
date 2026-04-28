@@ -71,7 +71,7 @@ export default function Sidebar() {
         {!collapsed && (
           <div>
             <div className="text-sm font-semibold text-zinc-100 leading-none">TradeJournal</div>
-            <div className="text-[10px] text-zinc-500 mt-0.5 uppercase tracking-wider">Pro</div>
+            <div className="text-[10px] text-zinc-500 mt-0.5 uppercase tracking-wider">Free Plan</div>
           </div>
         )}
       </div>
@@ -135,9 +135,9 @@ export default function Sidebar() {
           <Zap size={15} className="shrink-0" />
           {!collapsed && (
             <span className="flex items-center gap-2">
-              Pricing
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-light border border-accent/20 font-medium leading-none">
-                Pro
+              Upgrade
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-700/60 text-zinc-400 border border-zinc-600/40 font-medium leading-none">
+                Free
               </span>
             </span>
           )}
