@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
+// Note: useSearchParams kept for future use
 import { useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Pencil, Check, X, Unlink, RefreshCw, Wifi, AlertTriangle, CheckCircle2, Moon, Sun } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X, AlertTriangle, Moon, Sun } from 'lucide-react';
 import { ACCENT_PRESETS, applyTheme, type AccentColor, type ThemeMode } from '@/components/ThemeProvider';
 import { TAG_COLORS, getTagColorStyle, cn } from '@/lib/utils';
 import { useAccount, ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_COLORS } from '@/contexts/AccountContext';
-import type { Tag, Account, AccountType, TradovateConnection } from '@/types';
+import type { Tag, Account, AccountType } from '@/types';
 
 const ACCOUNT_TYPES: AccountType[] = ['live', 'funded', 'demo'];
 
@@ -108,16 +109,6 @@ function SettingsPage() {
     applyTheme(mode, accent);
   }
 
-  // Tradovate integration state
-  const [tvConnections, setTvConnections] = useState<TradovateConnection[]>([]);
-  const [tvSyncing, setTvSyncing] = useState<string | null>(null);
-  const [tvNotice, setTvNotice] = useState<{ type: 'ok' | 'error'; msg: string } | null>(null);
-
-  const loadTvConnections = useCallback(async () => {
-    const data = await fetch('/api/integrations/tradovate/accounts').then(r => r.json());
-    setTvConnections(Array.isArray(data) ? data : []);
-  }, []);
-
   const loadTags = useCallback(async () => {
     const data = await fetch('/api/tags').then(r => r.json());
     setTags(data);
@@ -125,13 +116,7 @@ function SettingsPage() {
 
   useEffect(() => {
     loadTags();
-    loadTvConnections();
-    // Show result of OAuth redirect
-    const connected = searchParams.get('tv_connected');
-    const error = searchParams.get('tv_error');
-    if (connected) setTvNotice({ type: 'ok', msg: 'Tradovate connected! Link it to a journal account below.' });
-    if (error) setTvNotice({ type: 'error', msg: decodeURIComponent(error) });
-  }, [loadTags, loadTvConnections, searchParams]);
+  }, [loadTags]);
 
   async function createTag() {
     if (!newTagName.trim()) return;
@@ -201,66 +186,6 @@ function SettingsPage() {
       total_loss_limit: a.total_loss_limit != null ? String(a.total_loss_limit) : '',
     });
   }
-
-  // Tradovate credentials form
-  const [tvForm, setTvForm] = useState({ username: '', password: '', environment: 'live' as 'live' | 'demo' });
-  const [tvConnecting, setTvConnecting] = useState(false);
-
-  async function connectTradovate() {
-    if (!tvForm.username.trim() || !tvForm.password.trim()) return;
-    setTvConnecting(true);
-    setTvNotice(null);
-    const res = await fetch('/api/integrations/tradovate/connect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(tvForm),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setTvNotice({ type: 'error', msg: data.error ?? 'Connection failed' });
-    } else {
-      setTvForm({ username: '', password: '', environment: 'live' });
-      setTvNotice({ type: 'ok', msg: `Connected! Found ${data.accounts} account${data.accounts !== 1 ? 's' : ''} — link below.` });
-      await loadTvConnections();
-    }
-    setTvConnecting(false);
-  }
-
-  async function linkTvAccount(connectionId: string, accountId: string | null) {
-    await fetch(`/api/integrations/tradovate/${connectionId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ account_id: accountId }),
-    });
-    await loadTvConnections();
-  }
-
-  async function deleteTvConnection(connectionId: string) {
-    if (!confirm('Remove this Tradovate connection?')) return;
-    await fetch(`/api/integrations/tradovate/${connectionId}`, { method: 'DELETE' });
-    await loadTvConnections();
-  }
-
-  async function manualSync(connectionId: string) {
-    setTvSyncing(connectionId);
-    await fetch('/api/integrations/tradovate/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ connection_id: connectionId }),
-    });
-    await loadTvConnections();
-    setTvSyncing(null);
-  }
-
-  function connectionStatus(conn: TradovateConnection) {
-    if (!conn.is_active) return 'inactive';
-    if (conn.sync_error) return 'error';
-    if (!conn.last_sync_at) return 'pending';
-    const ageMs = Date.now() - new Date(conn.last_sync_at).getTime();
-    return ageMs < 3 * 60 * 1000 ? 'ok' : 'stale';
-  }
-
-  const fundedAccounts = accounts.filter(a => a.account_type === 'funded');
 
   // Group accounts by type for display
   const grouped = ACCOUNT_TYPES
@@ -419,146 +344,6 @@ function SettingsPage() {
           ))}
         </div>
       </section>
-
-      {/* ── Tradovate Integration (funded accounts only) ── */}
-      {fundedAccounts.length > 0 && (
-        <section className="bg-bg-surface border border-border rounded-xl p-5">
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold text-zinc-200">Tradovate Integration</h2>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Auto-import trades from Tradovate. Prop firm accounts (Lucid, Apex, Topstep, etc.) use the <span className="text-zinc-300 font-medium">Prop Firm / Live</span> connection.
-            </p>
-          </div>
-
-
-          {/* OAuth result notice */}
-          {tvNotice && (
-            <div className={cn('flex items-start gap-2 p-3 rounded-lg mb-3 text-xs',
-              tvNotice.type === 'ok'
-                ? 'bg-profit/10 border border-profit/30 text-profit'
-                : 'bg-loss/10 border border-loss/30 text-loss'
-            )}>
-              {tvNotice.type === 'ok'
-                ? <CheckCircle2 size={13} className="shrink-0 mt-0.5" />
-                : <AlertTriangle size={13} className="shrink-0 mt-0.5" />}
-              <span>{tvNotice.msg}</span>
-            </div>
-          )}
-
-          {/* Connected accounts list */}
-          {tvConnections.length > 0 && (
-            <div className="space-y-2 mb-4">
-              {tvConnections.map(conn => {
-                const status = connectionStatus(conn);
-                const needsReconnect = conn.sync_error?.includes('reconnect');
-                return (
-                  <div key={conn.id} className="flex items-center gap-3 p-3 bg-bg-overlay rounded-xl border border-border">
-                    <div className={cn('w-2 h-2 rounded-full shrink-0', {
-                      'bg-profit': status === 'ok',
-                      'bg-amber-400': status === 'stale' || status === 'pending',
-                      'bg-loss': status === 'error',
-                      'bg-zinc-600': status === 'inactive',
-                    })} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-zinc-200">{conn.tradovate_account_name ?? `Account ${conn.tradovate_account_id}`}</span>
-                        <span className="text-[10px] text-zinc-600">{conn.environment === 'live' ? 'Live' : 'Demo'}</span>
-                      </div>
-                      <div className="text-[11px] text-zinc-600">
-                        {conn.sync_error
-                          ? <span className="text-loss">{conn.sync_error}</span>
-                          : conn.last_sync_at
-                          ? `Last sync: ${new Date(conn.last_sync_at).toLocaleTimeString()}`
-                          : 'Not yet synced'}
-                      </div>
-                    </div>
-                    {needsReconnect && (
-                      <button onClick={() => { setTvNotice({ type: 'error', msg: 'Re-enter your credentials below to reconnect.' }); }}
-                        className="px-2 py-1 text-[11px] bg-accent/20 text-accent-light border border-accent/30 rounded-lg hover:bg-accent/30 transition-colors">
-                        Reconnect
-                      </button>
-                    )}
-                    <select
-                      value={conn.account_id ?? ''}
-                      onChange={e => linkTvAccount(conn.id, e.target.value || null)}
-                      className="bg-bg-elevated border border-border rounded-lg px-2 py-1 text-xs text-zinc-300 focus:outline-none focus:border-accent"
-                    >
-                      <option value="">— Unlinked —</option>
-                      {fundedAccounts.map(a => (
-                        <option key={a.id} value={a.id}>{a.name}</option>
-                      ))}
-                    </select>
-                    {conn.is_active && (
-                      <button onClick={() => manualSync(conn.id)} disabled={tvSyncing === conn.id}
-                        className="p-1.5 text-zinc-500 hover:text-zinc-100 hover:bg-bg-elevated rounded-lg transition-colors">
-                        <RefreshCw size={12} className={cn(tvSyncing === conn.id && 'animate-spin')} />
-                      </button>
-                    )}
-                    <button onClick={() => deleteTvConnection(conn.id)}
-                      className="p-1.5 text-zinc-600 hover:text-loss hover:bg-loss-muted rounded-lg transition-colors">
-                      <Unlink size={12} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Connect form */}
-          <div className="space-y-3 p-4 bg-bg-overlay rounded-xl border border-border">
-            <p className="text-xs text-zinc-500">Enter your Tradovate login credentials. They are encrypted before storage and never shared.</p>
-            {/* Environment toggle */}
-            <div className="flex gap-2">
-              {(['live', 'demo'] as const).map(env => (
-                <button key={env} type="button"
-                  onClick={() => setTvForm(f => ({ ...f, environment: env }))}
-                  className={cn(
-                    'flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all',
-                    tvForm.environment === env
-                      ? 'border-accent bg-accent/10 text-accent-light'
-                      : 'border-border text-zinc-500 hover:text-zinc-300 hover:border-border-strong'
-                  )}>
-                  {env === 'live' ? 'Prop Firm / Live' : 'Demo (Paper Trading)'}
-                </button>
-              ))}
-            </div>
-            <p className="text-[11px] text-zinc-600 -mt-1">
-              Lucid, Apex, Topstep → <span className="text-zinc-400">Prop Firm / Live</span> &nbsp;·&nbsp; Tradovate paper trading → <span className="text-zinc-400">Demo</span>
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1">Tradovate Username</label>
-                <input
-                  type="text"
-                  autoComplete="off"
-                  value={tvForm.username}
-                  onChange={e => setTvForm(f => ({ ...f, username: e.target.value }))}
-                  placeholder="your@email.com"
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1">Password</label>
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  value={tvForm.password}
-                  onChange={e => setTvForm(f => ({ ...f, password: e.target.value }))}
-                  placeholder="••••••••"
-                  className={inputCls}
-                />
-              </div>
-            </div>
-            <button
-              onClick={connectTradovate}
-              disabled={!tvForm.username.trim() || !tvForm.password.trim() || tvConnecting}
-              className="w-full flex items-center justify-center gap-2 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-40">
-              <Wifi size={12} />
-              {tvConnecting ? 'Connecting…' : 'Connect Tradovate'}
-            </button>
-          </div>
-        </section>
-      )}
 
       {/* ── Appearance ── */}
       <section className="bg-bg-surface border border-border rounded-xl p-5">
