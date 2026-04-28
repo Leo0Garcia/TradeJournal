@@ -122,6 +122,27 @@ export default function Sidebar() {
       {/* Footer: settings + user */}
       <div className={cn('border-t border-border space-y-0.5', collapsed ? 'p-2' : 'p-3')}>
         <Link
+          href="/pricing"
+          title={collapsed ? 'Pricing' : undefined}
+          className={cn(
+            'flex items-center rounded-lg text-sm transition-all',
+            collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2',
+            pathname === '/pricing'
+              ? 'bg-bg-elevated text-zinc-300'
+              : 'text-zinc-500 hover:text-zinc-100 hover:bg-bg-elevated'
+          )}
+        >
+          <Zap size={15} className="shrink-0" />
+          {!collapsed && (
+            <span className="flex items-center gap-2">
+              Pricing
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent-light border border-accent/20 font-medium leading-none">
+                Pro
+              </span>
+            </span>
+          )}
+        </Link>
+        <Link
           href="/settings"
           title={collapsed ? 'Settings' : undefined}
           className={cn(
