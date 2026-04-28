@@ -128,7 +128,7 @@ export default function Sidebar() {
             'flex items-center rounded-lg text-sm transition-all',
             collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2',
             pathname === '/settings'
-              ? 'bg-accent text-white'
+              ? 'bg-bg-elevated text-zinc-300'
               : 'text-zinc-500 hover:text-zinc-100 hover:bg-bg-elevated'
           )}
         >

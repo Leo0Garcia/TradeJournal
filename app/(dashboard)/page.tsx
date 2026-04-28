@@ -413,7 +413,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="h-2 bg-bg-overlay rounded-full overflow-hidden">
                   <div
-                    className={cn('h-full rounded-full transition-all', totalLossUsedPct > 80 ? 'bg-red-500' : 'bg-emerald-500')}
+                    className="h-full rounded-full transition-all bg-loss"
                     style={{ width: `${totalLossUsedPct}%` }}
                   />
                 </div>

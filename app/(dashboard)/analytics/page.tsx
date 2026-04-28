@@ -127,8 +127,8 @@ export default function AnalyticsPage() {
         />
         <StatCard
           label="Avg R:R"
-          value={stats ? stats.avgRR.toFixed(2) + 'R' : '—'}
-          sub="Realized win/loss"
+          value={stats ? (stats.avgRR === 0 ? '—' : stats.avgRR.toFixed(2) + 'R') : '—'}
+          sub={stats && stats.avgRR === 0 ? 'Add SL & TP data to calculate' : 'Avg R multiple (SL-based)'}
           trend={stats ? (stats.avgRR >= 1 ? 'up' : 'neutral') : 'neutral'}
         />
         <StatCard

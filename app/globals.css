@@ -84,6 +84,18 @@
   --accent-muted: 234 88  12;
 }
 
+/* ── Light mode: remap zinc text classes so hardcoded zinc colours read on white ── */
+[data-theme="light"] .text-zinc-100 { color: rgb(15 23 42); }
+[data-theme="light"] .text-zinc-200 { color: rgb(30 41 59); }
+[data-theme="light"] .text-zinc-300 { color: rgb(51 65 85); }
+[data-theme="light"] .text-zinc-400 { color: rgb(71 85 105); }
+[data-theme="light"] .text-zinc-500 { color: rgb(100 116 139); }
+[data-theme="light"] .text-zinc-600 { color: rgb(148 163 184); }
+[data-theme="light"] .text-zinc-700 { color: rgb(196 210 224); }
+[data-theme="light"] .hover\:text-zinc-100:hover { color: rgb(15 23 42); }
+[data-theme="light"] .bg-zinc-900 { background-color: rgb(248 250 252); }
+[data-theme="light"] .border-zinc-800 { border-color: rgb(203 213 225); }
+
 * {
   box-sizing: border-box;
   margin: 0;
