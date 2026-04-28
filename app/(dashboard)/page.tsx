@@ -193,6 +193,13 @@ export default function DashboardPage() {
     ? Math.min(100, Math.max(0, (Math.abs(Math.min(0, totalPnl)) / totalLossLimit) * 100))
     : null;
 
+  // Bidirectional eval bar
+  const isEvalBar = showChallengeCard && totalStarting > 0;
+  const evalLeftMax = totalLossLimit ?? totalStarting;           // max drawdown before bust
+  const evalRightMax = profitTarget ?? evalLeftMax;              // profit target or symmetric
+  const evalLossPct  = Math.min(50, totalPnl < 0 ? (Math.abs(totalPnl) / evalLeftMax)  * 50 : 0);
+  const evalProfitPct= Math.min(50, totalPnl > 0 ? (totalPnl            / evalRightMax) * 50 : 0);
+
   if (loading) {
     return (
       <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -307,18 +314,49 @@ export default function DashboardPage() {
             </div>
           </div>
           {/* Progress bar */}
-          <div className="relative">
-            <div className="w-full h-2 bg-bg-overlay rounded-full overflow-hidden">
-              <div
-                className={cn('h-full rounded-full transition-all', totalPnl >= 0 ? 'bg-profit' : 'bg-loss')}
-                style={{ width: `${Math.min(100, Math.abs(pnlPct ?? 0))}%` }}
-              />
+          {isEvalBar ? (
+            <div className="relative">
+              {/* Track */}
+              <div className="relative w-full h-2.5 bg-bg-overlay rounded-full overflow-hidden">
+                {/* Loss fill — grows left from centre */}
+                <div
+                  className="absolute h-full bg-loss/80 transition-all duration-500"
+                  style={{ right: '50%', width: `${evalLossPct}%` }}
+                />
+                {/* Profit fill — grows right from centre */}
+                <div
+                  className="absolute h-full bg-profit/80 transition-all duration-500"
+                  style={{ left: '50%', width: `${evalProfitPct}%` }}
+                />
+                {/* Centre marker */}
+                <div className="absolute left-1/2 -translate-x-px h-full w-0.5 bg-zinc-500/70 z-10" />
+              </div>
+              {/* Labels */}
+              <div className="flex justify-between mt-1.5 text-[11px] text-zinc-600">
+                <span className="text-loss/70">
+                  −{formatCurrency(evalLeftMax, true)}
+                  {!totalLossLimit && <span className="ml-1 text-zinc-700">(no limit set)</span>}
+                </span>
+                <span className="text-zinc-500">Start: {formatCurrency(totalStarting, true)}</span>
+                <span className={profitTarget ? 'text-profit/70' : 'text-zinc-700'}>
+                  {profitTarget ? `+${formatCurrency(profitTarget, true)}` : 'No target set'}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between mt-1.5 text-[11px] text-zinc-600">
-              <span>Starting: {formatCurrency(totalStarting, true)}</span>
-              <span>Current: {formatCurrency(currentBalance, true)}</span>
+          ) : (
+            <div className="relative">
+              <div className="w-full h-2 bg-bg-overlay rounded-full overflow-hidden">
+                <div
+                  className={cn('h-full rounded-full transition-all', totalPnl >= 0 ? 'bg-profit' : 'bg-loss')}
+                  style={{ width: `${Math.min(100, Math.abs(pnlPct ?? 0))}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-1.5 text-[11px] text-zinc-600">
+                <span>Starting: {formatCurrency(totalStarting, true)}</span>
+                <span>Current: {formatCurrency(currentBalance, true)}</span>
+              </div>
             </div>
-          </div>
+          )}
           {/* Per-account breakdown when viewing a group */}
           {selection.type === 'account_type' && accountsWithSize.length > 1 && (
             <div className="mt-3 pt-3 border-t border-border space-y-1.5">
