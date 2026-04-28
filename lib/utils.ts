@@ -8,7 +8,10 @@ export function cn(...inputs: ClassValue[]) {
 export function formatCurrency(value: number, compact = false): string {
   const abs = Math.abs(value);
   if (compact && abs >= 1000) {
-    return (value < 0 ? '-' : '') + '$' + (abs / 1000).toFixed(1) + 'k';
+    const k = abs / 1000;
+    // Use enough decimals to avoid lossy rounding (e.g. 1250 → 1.25k, not 1.3k)
+    const decimals = k % 1 === 0 ? 0 : k * 10 % 1 === 0 ? 1 : 2;
+    return (value < 0 ? '-' : '') + '$' + k.toFixed(decimals) + 'k';
   }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
