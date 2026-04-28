@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Calendar, Trophy, Target } from 'lucide-react';
-import { cn, formatCurrency, pnlColor } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
+import { StatRowSkeleton, CalendarSkeleton } from '@/components/ui/Skeleton';
 import { useAccount } from '@/contexts/AccountContext';
 import type { CalendarResponse, CalendarDay } from '@/app/api/calendar/route';
 
@@ -121,6 +122,19 @@ export default function CalendarPage() {
       return 'bg-loss/10 border-loss/15';
     }
     return 'bg-transparent border-border/50';
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2"><div className="h-6 w-36 animate-pulse rounded-lg bg-bg-elevated" /><div className="h-4 w-48 animate-pulse rounded-lg bg-bg-elevated" /></div>
+          <div className="flex gap-2"><div className="h-9 w-9 animate-pulse rounded-lg bg-bg-elevated" /><div className="h-9 w-36 animate-pulse rounded-lg bg-bg-elevated" /><div className="h-9 w-9 animate-pulse rounded-lg bg-bg-elevated" /></div>
+        </div>
+        <StatRowSkeleton count={6} />
+        <CalendarSkeleton />
+      </div>
+    );
   }
 
   return (

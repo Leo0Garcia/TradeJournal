@@ -7,6 +7,7 @@ import {
   AlertTriangle, Trophy, Wifi, WifiOff, Clock
 } from 'lucide-react';
 import StatCard from '@/components/ui/StatCard';
+import { StatRowSkeleton, ChartSkeleton } from '@/components/ui/Skeleton';
 import TagBadge from '@/components/ui/TagBadge';
 import NewTradeModal from '@/components/modals/NewTradeModal';
 import AddExitModal from '@/components/modals/AddExitModal';
@@ -53,12 +54,14 @@ export default function DashboardPage() {
   const [showNewTrade, setShowNewTrade] = useState(false);
   const [exitTrade, setExitTrade] = useState<Trade | null>(null);
   const [detailTrade, setDetailTrade] = useState<Trade | null>(null);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [converting, setConverting] = useState(false);
 
   const accountParamsStr = accountParams.toString();
 
   const load = useCallback(async () => {
+    setLoading(true);
     const ap = accountParamsStr ? `&${accountParamsStr}` : '';
     const [analytics, open, recent, tags, conns] = await Promise.all([
       fetch(`/api/analytics?${accountParamsStr}`).then(r => r.json()),
@@ -72,6 +75,7 @@ export default function DashboardPage() {
     setRecentTrades(recent.slice(0, 10));
     setAllTags(tags);
     setConnections(Array.isArray(conns) ? conns : []);
+    setLoading(false);
   }, [accountParamsStr]);
 
   useEffect(() => { load(); }, [load]);
@@ -188,6 +192,23 @@ export default function DashboardPage() {
   const totalLossUsedPct = totalLossLimit
     ? Math.min(100, Math.max(0, (Math.abs(Math.min(0, totalPnl)) / totalLossLimit) * 100))
     : null;
+
+  if (loading) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2"><div className="h-7 w-40 animate-pulse rounded-lg bg-bg-elevated" /><div className="h-4 w-32 animate-pulse rounded-lg bg-bg-elevated" /></div>
+          <div className="h-9 w-28 animate-pulse rounded-xl bg-bg-elevated" />
+        </div>
+        <StatRowSkeleton count={4} />
+        <ChartSkeleton height={200} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartSkeleton height={180} />
+          <ChartSkeleton height={180} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

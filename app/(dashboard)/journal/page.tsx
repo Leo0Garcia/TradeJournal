@@ -7,6 +7,7 @@ import NewTradeModal from '@/components/modals/NewTradeModal';
 import AddExitModal from '@/components/modals/AddExitModal';
 import TradeDetailPanel from '@/components/journal/TradeDetailPanel';
 import { formatCurrency, formatDate, pnlColor, cn } from '@/lib/utils';
+import { TableSkeleton } from '@/components/ui/Skeleton';
 import { useAccount } from '@/contexts/AccountContext';
 import type { Trade, Tag, Instrument, NewTradeInput, NewExitInput } from '@/types';
 
@@ -18,6 +19,7 @@ export default function JournalPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [instruments, setInstruments] = useState<Instrument[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showNewTrade, setShowNewTrade] = useState(false);
   const [exitTrade, setExitTrade] = useState<Trade | null>(null);
   const [detailTrade, setDetailTrade] = useState<Trade | null>(null);
@@ -38,6 +40,7 @@ export default function JournalPage() {
   const accountParamsStr = accountParams.toString();
 
   const load = useCallback(async () => {
+    setLoading(true);
     const params = new URLSearchParams(accountParamsStr);
     if (statusFilter !== 'all') params.set('status', statusFilter);
     if (symbolFilter !== 'all') params.set('symbol', symbolFilter);
@@ -53,6 +56,7 @@ export default function JournalPage() {
     setTrades(tradesData);
     setAllTags(tagsData);
     setInstruments(instrData);
+    setLoading(false);
   }, [accountParamsStr, statusFilter, symbolFilter, dirFilter, fromDate, toDate]);
 
   useEffect(() => { load(); }, [load]);
@@ -154,6 +158,19 @@ export default function JournalPage() {
         {label}
         <ChevronDown size={12} className={cn('transition-transform', active && sortDir === 'asc' ? 'rotate-180' : '')} />
       </button>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2"><div className="h-6 w-32 animate-pulse rounded-lg bg-bg-elevated" /><div className="h-4 w-24 animate-pulse rounded-lg bg-bg-elevated" /></div>
+          <div className="h-9 w-28 animate-pulse rounded-xl bg-bg-elevated" />
+        </div>
+        <div className="h-16 animate-pulse rounded-xl bg-bg-surface border border-border" />
+        <TableSkeleton rows={8} cols={7} />
+      </div>
     );
   }
 
