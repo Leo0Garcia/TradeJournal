@@ -411,6 +411,22 @@ function SettingsPage() {
             </p>
           </div>
 
+          {/* API registration notice */}
+          <div className="flex items-start gap-2.5 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl mb-4 text-xs">
+            <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-zinc-400 space-y-1">
+              <p>
+                <span className="text-zinc-200 font-medium">API access required.</span>{' '}
+                Tradovate requires a registered developer account before OAuth can connect to a third-party app.
+              </p>
+              <p>
+                Email <span className="text-zinc-200 font-mono">api@tradovate.com</span> with your app name and redirect URI:{' '}
+                <span className="text-zinc-300 font-mono break-all">https://trade-journal-five-mu.vercel.app/api/integrations/tradovate/callback</span>
+              </p>
+              <p>Once they send you a <span className="text-zinc-200">client_id</span> and <span className="text-zinc-200">client_secret</span>, add them as <span className="font-mono">TRADOVATE_CLIENT_ID</span> and <span className="font-mono">TRADOVATE_CLIENT_SECRET</span> in your Vercel environment variables and the buttons below will work.</p>
+            </div>
+          </div>
+
           {/* OAuth result notice */}
           {tvNotice && (
             <div className={cn('flex items-start gap-2 p-3 rounded-lg mb-3 text-xs',

@@ -15,8 +15,8 @@ const OAUTH_TOKEN_URLS: Record<TradovateEnvironment, string> = {
   demo: 'https://live-api-d.tradovate.com/auth/oauthtoken',
 };
 
-const CLIENT_ID = '1';
-const CLIENT_SECRET = 'd369b9733404dabf4c0a1bf70ca7227769887d09d8d1d6cfa3f23326d6203297';
+const CLIENT_ID = process.env.TRADOVATE_CLIENT_ID ?? '1';
+const CLIENT_SECRET = process.env.TRADOVATE_CLIENT_SECRET ?? 'd369b9733404dabf4c0a1bf70ca7227769887d09d8d1d6cfa3f23326d6203297';
 
 export interface TradovateTokenResponse {
   accessToken: string;
