@@ -288,7 +288,7 @@ export default function JournalPage() {
                 <th className="px-4 py-3 text-left"><SortHeader label="Date" field="trade_date" /></th>
                 <th className="px-4 py-3 text-left"><SortHeader label="Symbol" field="symbol" /></th>
                 <th className="px-4 py-3 text-left">
-                  <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Dir</span>
+                  <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Direction</span>
                 </th>
                 <th className="px-4 py-3 text-right">
                   <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Entry</span>
@@ -333,7 +333,7 @@ export default function JournalPage() {
                         : <ArrowDownRight size={14} className="text-loss" />
                       }
                       <span className={`text-xs font-semibold ${trade.direction === 'long' ? 'text-profit' : 'text-loss'}`}>
-                        {trade.direction === 'long' ? 'L' : 'S'}
+                        {trade.direction === 'long' ? 'Long' : 'Short'}
                       </span>
                     </div>
                   </td>
