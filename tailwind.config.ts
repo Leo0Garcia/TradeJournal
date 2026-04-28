@@ -10,21 +10,21 @@ const config: Config = {
     extend: {
       colors: {
         bg: {
-          base: '#09090b',
-          surface: '#111113',
-          elevated: '#18181b',
-          overlay: '#1c1c20',
+          base:     'rgb(var(--bg-base) / <alpha-value>)',
+          surface:  'rgb(var(--bg-surface) / <alpha-value>)',
+          elevated: 'rgb(var(--bg-elevated) / <alpha-value>)',
+          overlay:  'rgb(var(--bg-overlay) / <alpha-value>)',
         },
         border: {
-          DEFAULT: '#27272a',
-          subtle: '#1f1f23',
-          strong: '#3f3f46',
+          DEFAULT: 'rgb(var(--border) / <alpha-value>)',
+          subtle:  'rgb(var(--border-subtle) / <alpha-value>)',
+          strong:  'rgb(var(--border-strong) / <alpha-value>)',
         },
         accent: {
-          DEFAULT: '#7c3aed',
-          hover: '#6d28d9',
-          light: '#a78bfa',
-          muted: '#7c3aed33',
+          DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
+          hover:   'rgb(var(--accent-hover) / <alpha-value>)',
+          light:   'rgb(var(--accent-light) / <alpha-value>)',
+          muted:   'rgb(var(--accent-muted) / <alpha-value>)',
         },
         profit: {
           DEFAULT: '#22c55e',

@@ -6,6 +6,7 @@ import {
   ReferenceLine, Cell, AreaChart, Area
 } from 'recharts';
 import StatCard from '@/components/ui/StatCard';
+import { StatRowSkeleton, ChartSkeleton } from '@/components/ui/Skeleton';
 import { formatCurrency, formatPercent, pnlColor } from '@/lib/utils';
 import { useAccount } from '@/contexts/AccountContext';
 import type { DashboardStats, PnLByTicker, PnLByDay, TagPerformance } from '@/types';
@@ -26,16 +27,22 @@ const CUSTOM_TOOLTIP_STYLE = {
     fontSize: 12,
     color: '#f4f4f5',
   },
+  wrapperStyle: { outline: 'none' },
   labelStyle: { color: '#71717a' },
+  cursor: { stroke: '#3f3f46', strokeWidth: 1 },
 };
 
 export default function AnalyticsPage() {
   const { accountParams } = useAccount();
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'all' | '30d' | '7d'>('all');
 
   useEffect(() => {
-    fetch(`/api/analytics?${accountParams}`).then(r => r.json()).then(setData);
+    setLoading(true);
+    fetch(`/api/analytics?${accountParams}`)
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false); });
   }, [accountParams]);
 
   const stats = data?.stats;
@@ -71,13 +78,21 @@ export default function AnalyticsPage() {
     });
   })();
 
-  if (!data) {
+  if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center h-96 text-zinc-600">
-        Loading analytics...
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2"><div className="h-6 w-28 animate-pulse rounded-lg bg-bg-elevated" /><div className="h-4 w-40 animate-pulse rounded-lg bg-bg-elevated" /></div>
+        </div>
+        <StatRowSkeleton count={4} />
+        <ChartSkeleton height={220} />
+        <ChartSkeleton height={160} />
+        <ChartSkeleton height={160} />
       </div>
     );
   }
+
+  if (!data) return null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -112,8 +127,8 @@ export default function AnalyticsPage() {
         />
         <StatCard
           label="Avg R:R"
-          value={stats ? stats.avgRR.toFixed(2) + 'R' : '—'}
-          sub="Realized win/loss"
+          value={stats ? (stats.avgRR === 0 ? '—' : stats.avgRR.toFixed(2) + 'R') : '—'}
+          sub={stats && stats.avgRR === 0 ? 'Add SL & TP data to calculate' : 'Avg R multiple (SL-based)'}
           trend={stats ? (stats.avgRR >= 1 ? 'up' : 'neutral') : 'neutral'}
         />
         <StatCard
