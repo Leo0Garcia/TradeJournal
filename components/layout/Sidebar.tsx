@@ -220,10 +220,10 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
         )}
       </div>
 
-      {/* Collapse toggle button */}
+      {/* Collapse toggle button — desktop only */}
       <button
         onClick={toggleCollapsed}
-        className="absolute -right-3 top-[72px] z-10 flex items-center justify-center w-6 h-6 rounded-full bg-bg-elevated border border-border text-zinc-500 hover:text-zinc-100 hover:bg-bg-overlay transition-all shadow-md"
+        className="hidden lg:flex absolute -right-3 top-[72px] z-10 items-center justify-center w-6 h-6 rounded-full bg-bg-elevated border border-border text-zinc-500 hover:text-zinc-100 hover:bg-bg-overlay transition-all shadow-md"
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {collapsed
