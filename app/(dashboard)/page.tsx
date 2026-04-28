@@ -306,7 +306,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold font-mono text-zinc-100">{formatCurrency(currentBalance, true)}</div>
+              <div className="text-xl lg:text-2xl font-bold font-mono text-zinc-100">{formatCurrency(currentBalance, true)}</div>
               <div className={cn('text-sm font-mono font-semibold', totalPnl >= 0 ? 'text-profit-text' : 'text-loss-text')}>
                 {totalPnl >= 0 ? '+' : ''}{formatCurrency(totalPnl)}
                 {pnlPct !== null && <span className="text-xs ml-1 opacity-75">({pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(2)}%)</span>}
@@ -493,7 +493,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-3 gap-2 lg:gap-3 mb-4">
         <StatCard label="Week P&L" value={stats ? formatCurrency(stats.weekPnl) : '—'} trend={stats ? (stats.weekPnl >= 0 ? 'up' : 'down') : 'neutral'} />
         <StatCard label="Largest Win" value={stats ? formatCurrency(stats.largestWin) : '—'} icon={ArrowUpRight} trend="up" />
         <StatCard label="Largest Loss" value={stats ? formatCurrency(stats.largestLoss) : '—'} icon={ArrowDownRight} trend="down" />

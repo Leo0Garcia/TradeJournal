@@ -40,7 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="w-9" />
           </div>
 
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden w-full">
             {children}
           </main>
         </div>
