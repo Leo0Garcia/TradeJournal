@@ -333,7 +333,7 @@ export default function JournalPage() {
                         : <ArrowDownRight size={14} className="text-loss" />
                       }
                       <span className={`text-xs font-semibold ${trade.direction === 'long' ? 'text-profit' : 'text-loss'}`}>
-                        {trade.direction === 'long' ? 'Long' : 'Short'}
+                        {trade.direction === 'long' ? 'LONG' : 'SHORT'}
                       </span>
                     </div>
                   </td>
