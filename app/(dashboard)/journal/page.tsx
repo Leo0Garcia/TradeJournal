@@ -279,11 +279,11 @@ export default function JournalPage() {
                 <th className="px-4 py-3 text-right">
                   <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Exit(s)</span>
                 </th>
-                <th className="px-4 py-3 text-right"><SortHeader label="Size" field="initial_size" /></th>
+                <th className="px-4 py-3 text-right"><div className="flex justify-end"><SortHeader label="Size" field="initial_size" /></div></th>
                 <th className="px-4 py-3 text-left">
                   <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Tags</span>
                 </th>
-                <th className="px-4 py-3 text-right"><SortHeader label="P&L" field="net_pnl" /></th>
+                <th className="px-4 py-3 text-right"><div className="flex justify-end"><SortHeader label="P&L" field="net_pnl" /></div></th>
                 <th className="px-4 py-3 text-center">
                   <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">Status</span>
                 </th>

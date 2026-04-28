@@ -4,8 +4,84 @@
 
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* ── Accent colour presets ─────────────────────────────────────────── */
 :root {
+  --accent:       220 38 38;  /* placeholder, JS sets real value */
+  --accent-hover: 185 28 28;
+  --accent-light: 252 165 165;
+  --accent-muted: 220 38 38;
+}
+
+/* ── Dark theme (default) ──────────────────────────────────────────── */
+:root, [data-theme="dark"] {
   color-scheme: dark;
+
+  --bg-base:     9   9   11;
+  --bg-surface:  17  17  19;
+  --bg-elevated: 24  24  27;
+  --bg-overlay:  28  28  32;
+
+  --border:      39  39  42;
+  --border-subtle: 31 31 35;
+  --border-strong: 63 63 70;
+
+  --text-primary:   244 244 245;
+  --text-secondary: 113 113 122;
+}
+
+/* ── Light theme ───────────────────────────────────────────────────── */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-base:     248 250 252;
+  --bg-surface:  255 255 255;
+  --bg-elevated: 241 245 249;
+  --bg-overlay:  226 232 240;
+
+  --border:      203 213 225;
+  --border-subtle: 226 232 240;
+  --border-strong: 148 163 184;
+
+  --text-primary:   15  23  42;
+  --text-secondary: 100 116 139;
+}
+
+/* ── Accent colour presets (purple default) ────────────────────────── */
+[data-accent="purple"] {
+  --accent:       124 58  237;
+  --accent-hover: 109 40  217;
+  --accent-light: 167 139 250;
+  --accent-muted: 124 58  237;
+}
+[data-accent="blue"] {
+  --accent:       37  99  235;
+  --accent-hover: 29  78  216;
+  --accent-light: 147 197 253;
+  --accent-muted: 37  99  235;
+}
+[data-accent="cyan"] {
+  --accent:       8   145 178;
+  --accent-hover: 14  116 144;
+  --accent-light: 103 232 249;
+  --accent-muted: 8   145 178;
+}
+[data-accent="emerald"] {
+  --accent:       5   150 105;
+  --accent-hover: 4   120 87;
+  --accent-light: 110 231 183;
+  --accent-muted: 5   150 105;
+}
+[data-accent="rose"] {
+  --accent:       225 29  72;
+  --accent-hover: 190 18  60;
+  --accent-light: 253 164 175;
+  --accent-muted: 225 29  72;
+}
+[data-accent="orange"] {
+  --accent:       234 88  12;
+  --accent-hover: 194 65  12;
+  --accent-light: 253 186 116;
+  --accent-muted: 234 88  12;
 }
 
 * {
@@ -15,8 +91,8 @@
 }
 
 body {
-  background-color: #09090b;
-  color: #f4f4f5;
+  background-color: rgb(var(--bg-base));
+  color: rgb(var(--text-primary));
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -51,6 +127,6 @@ input[type='number'] {
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px #18181b inset;
-  -webkit-text-fill-color: #f4f4f5;
+  -webkit-box-shadow: 0 0 0px 1000px rgb(var(--bg-elevated)) inset;
+  -webkit-text-fill-color: rgb(var(--text-primary));
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, CreditCard, Check } from 'lucide-react';
+import { ChevronDown, CreditCard, Check, Trophy, FlaskConical, AlertTriangle } from 'lucide-react';
 import { useAccount, ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_COLORS } from '@/contexts/AccountContext';
 import { cn } from '@/lib/utils';
 import type { AccountSelection, AccountType } from '@/types';
@@ -94,17 +94,27 @@ export default function AccountSwitcher() {
               />
 
               {/* Individual accounts */}
-              {accs.map(a => (
-                <Item
-                  key={a.id}
-                  icon={<CreditCard size={12} className="text-zinc-500 ml-2" />}
-                  label={a.name}
-                  sublabel={a.broker ?? undefined}
-                  active={isActive({ type: 'account', id: a.id })}
-                  onClick={() => select({ type: 'account', id: a.id })}
-                  indent
-                />
-              ))}
+              {accs.map(a => {
+                const badge = a.is_challenge && !a.challenge_passed
+                  ? { icon: <FlaskConical size={10} />, label: 'Eval', color: 'text-amber-400' }
+                  : a.is_challenge && a.challenge_passed
+                  ? { icon: <Trophy size={10} />, label: 'Passed', color: 'text-emerald-400' }
+                  : a.is_disabled
+                  ? { icon: <AlertTriangle size={10} />, label: 'Disabled', color: 'text-loss' }
+                  : null;
+                return (
+                  <Item
+                    key={a.id}
+                    icon={<CreditCard size={12} className="text-zinc-500 ml-2" />}
+                    label={a.name}
+                    sublabel={a.broker ?? undefined}
+                    badge={badge ?? undefined}
+                    active={isActive({ type: 'account', id: a.id })}
+                    onClick={() => select({ type: 'account', id: a.id })}
+                    indent
+                  />
+                );
+              })}
             </div>
           ))}
         </div>
@@ -114,12 +124,13 @@ export default function AccountSwitcher() {
 }
 
 function Item({
-  icon, dotColor, label, sublabel, active, onClick, indent,
+  icon, dotColor, label, sublabel, badge, active, onClick, indent,
 }: {
   icon?: React.ReactNode;
   dotColor?: string;
   label: string;
   sublabel?: string;
+  badge?: { icon: React.ReactNode; label: string; color: string };
   active: boolean;
   onClick: () => void;
   indent?: boolean;
@@ -140,6 +151,11 @@ function Item({
         </div>
         {sublabel && <div className="text-[10px] text-zinc-600 truncate">{sublabel}</div>}
       </div>
+      {badge && (
+        <span className={cn('flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider shrink-0', badge.color)}>
+          {badge.icon}{badge.label}
+        </span>
+      )}
       {active && <Check size={11} className="text-accent shrink-0" />}
     </button>
   );

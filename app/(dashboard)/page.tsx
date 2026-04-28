@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  DollarSign, TrendingUp, TrendingDown, Activity,
-  Target, ArrowUpRight, ArrowDownRight, Plus, RefreshCw
+  DollarSign, TrendingUp, Activity,
+  Target, ArrowUpRight, ArrowDownRight, Plus, RefreshCw,
+  AlertTriangle, Trophy, Wifi, WifiOff, Clock
 } from 'lucide-react';
 import StatCard from '@/components/ui/StatCard';
 import TagBadge from '@/components/ui/TagBadge';
@@ -13,38 +14,64 @@ import TradeDetailPanel from '@/components/journal/TradeDetailPanel';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { formatCurrency, formatPercent, pnlColor, cn } from '@/lib/utils';
 import { useAccount } from '@/contexts/AccountContext';
-import type { DashboardStats, Trade, Tag, PnLByDay, NewTradeInput, NewExitInput } from '@/types';
+import type { DashboardStats, Trade, Tag, PnLByDay, NewTradeInput, NewExitInput, TradovateConnection } from '@/types';
 
 interface AnalyticsData {
   stats: DashboardStats;
   equityCurve: PnLByDay[];
 }
 
+function connStatus(conn: TradovateConnection): 'ok' | 'stale' | 'error' | 'inactive' | 'pending' {
+  if (!conn.is_active) return 'inactive';
+  if (conn.sync_error) return 'error';
+  if (!conn.last_sync_at) return 'pending';
+  const ageMs = Date.now() - new Date(conn.last_sync_at).getTime();
+  if (ageMs < 3 * 60 * 1000) return 'ok';
+  if (ageMs < 10 * 60 * 1000) return 'stale';
+  return 'error';
+}
+
+function connLabel(conn: TradovateConnection): string {
+  const s = connStatus(conn);
+  if (s === 'ok') {
+    const mins = Math.floor((Date.now() - new Date(conn.last_sync_at!).getTime()) / 60000);
+    return mins < 1 ? 'Synced just now' : `Synced ${mins}m ago`;
+  }
+  if (s === 'stale') return 'Sync delayed';
+  if (s === 'error') return conn.sync_error ? `Error: ${conn.sync_error.slice(0, 40)}` : 'Sync error';
+  if (s === 'pending') return 'Waiting for first sync…';
+  return 'Inactive';
+}
+
 export default function DashboardPage() {
-  const { accountParams, selection, accounts, loaded, mustSelectAccount } = useAccount();
+  const { accountParams, selection, accounts, loaded, mustSelectAccount, reload: reloadAccounts } = useAccount();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [openTrades, setOpenTrades] = useState<Trade[]>([]);
   const [recentTrades, setRecentTrades] = useState<Trade[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [connections, setConnections] = useState<TradovateConnection[]>([]);
   const [showNewTrade, setShowNewTrade] = useState(false);
   const [exitTrade, setExitTrade] = useState<Trade | null>(null);
   const [detailTrade, setDetailTrade] = useState<Trade | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [converting, setConverting] = useState(false);
 
   const accountParamsStr = accountParams.toString();
 
   const load = useCallback(async () => {
     const ap = accountParamsStr ? `&${accountParamsStr}` : '';
-    const [analytics, open, recent, tags] = await Promise.all([
+    const [analytics, open, recent, tags, conns] = await Promise.all([
       fetch(`/api/analytics?${accountParamsStr}`).then(r => r.json()),
       fetch(`/api/trades?status=open${ap}`).then(r => r.json()),
       fetch(`/api/trades?status=closed${ap}`).then(r => r.json()),
       fetch('/api/tags').then(r => r.json()),
+      fetch('/api/integrations/tradovate/accounts').then(r => r.json()),
     ]);
     setData(analytics);
     setOpenTrades(open);
     setRecentTrades(recent.slice(0, 10));
     setAllTags(tags);
+    setConnections(Array.isArray(conns) ? conns : []);
   }, [accountParamsStr]);
 
   useEffect(() => { load(); }, [load]);
@@ -96,10 +123,38 @@ export default function DashboardPage() {
     await load();
   }
 
+  async function handleConvertToFunded() {
+    if (!selectedAccount) return;
+    if (!confirm('Convert to funded account? Challenge limits and profit target will be removed.')) return;
+    setConverting(true);
+    await fetch(`/api/accounts/${selectedAccount.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: selectedAccount.name,
+        broker: selectedAccount.broker,
+        description: selectedAccount.description,
+        currency: selectedAccount.currency,
+        account_type: selectedAccount.account_type,
+        account_size: selectedAccount.account_size,
+        is_challenge: false,
+        challenge_passed: true,
+      }),
+    });
+    await reloadAccounts();
+    await load();
+    setConverting(false);
+  }
+
   const stats = data?.stats;
   const curve = data?.equityCurve ?? [];
 
   // Account balance section
+  const selectedAccount = selection.type === 'account'
+    ? accounts.find(a => a.id === selection.id) ?? null
+    : null;
+  const accountDisabled = selectedAccount?.is_disabled ?? false;
+
   const relevantAccounts = selection.type === 'account'
     ? accounts.filter(a => a.id === selection.id)
     : accounts.filter(a => a.account_type === selection.accountType);
@@ -109,6 +164,30 @@ export default function DashboardPage() {
   const currentBalance = totalStarting + totalPnl;
   const pnlPct = totalStarting > 0 ? (totalPnl / totalStarting) * 100 : null;
   const showBalanceCard = accountsWithSize.length > 0;
+
+  // Tradovate connection for the currently selected account
+  const accountConnection = selectedAccount
+    ? connections.find(c => c.account_id === selectedAccount.id) ?? null
+    : null;
+
+  // Challenge progress derived values
+  const showChallengeCard = !!(
+    selectedAccount?.is_challenge &&
+    !selectedAccount?.challenge_passed &&
+    !selectedAccount?.is_disabled
+  );
+  const profitTarget = selectedAccount?.profit_target ?? null;
+  const dailyLossLimit = selectedAccount?.daily_loss_limit ?? null;
+  const totalLossLimit = selectedAccount?.total_loss_limit ?? null;
+  const todayPnl = stats?.todayPnl ?? 0;
+
+  const profitPct = profitTarget ? Math.min(100, Math.max(0, (totalPnl / profitTarget) * 100)) : null;
+  const dailyLossUsedPct = dailyLossLimit
+    ? Math.min(100, Math.max(0, (Math.abs(Math.min(0, todayPnl)) / dailyLossLimit) * 100))
+    : null;
+  const totalLossUsedPct = totalLossLimit
+    ? Math.min(100, Math.max(0, (Math.abs(Math.min(0, totalPnl)) / totalLossLimit) * 100))
+    : null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -132,20 +211,59 @@ export default function DashboardPage() {
           </button>
           <div className="relative group">
             <button
-              onClick={() => !mustSelectAccount && setShowNewTrade(true)}
-              disabled={mustSelectAccount}
+              onClick={() => !mustSelectAccount && !accountDisabled && setShowNewTrade(true)}
+              disabled={mustSelectAccount || accountDisabled}
               className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-accent/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
             >
               <Plus size={15} /> New Trade
             </button>
-            {mustSelectAccount && loaded && (
+            {(mustSelectAccount || accountDisabled) && loaded && (
               <div className="absolute right-0 top-full mt-2 w-52 px-3 py-2 bg-bg-elevated border border-border rounded-xl text-xs text-zinc-400 shadow-xl z-10 hidden group-hover:block">
-                {accounts.length === 0 ? 'Create an account in Settings first' : 'Select a specific account first'}
+                {accountDisabled
+                  ? 'Account disabled — loss limit was breached'
+                  : accounts.length === 0
+                  ? 'Create an account in Settings first'
+                  : 'Select a specific account first'}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Disabled account banner */}
+      {accountDisabled && (
+        <div className="mb-4 flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
+          <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <div className="text-sm font-semibold text-red-400">Account Disabled</div>
+            <div className="text-xs text-red-400/70 mt-0.5">
+              A loss limit was breached. This account is read-only. Delete or reset it in Settings to continue.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Challenge passed — conversion prompt */}
+      {selectedAccount?.challenge_passed && !accountDisabled && (
+        <div className="mb-4 flex items-center justify-between gap-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Trophy size={16} className="text-emerald-400 shrink-0" />
+            <div>
+              <div className="text-sm font-semibold text-emerald-400">Profit Target Reached!</div>
+              <div className="text-xs text-emerald-400/70 mt-0.5">
+                Your evaluation is complete. Convert to a funded account to trade without limits.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleConvertToFunded}
+            disabled={converting}
+            className="shrink-0 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
+          >
+            {converting ? 'Converting…' : 'Convert to Funded'}
+          </button>
+        </div>
+      )}
 
       {/* Account balance card */}
       {showBalanceCard && (
@@ -191,6 +309,96 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
+          {/* Tradovate connection status for single funded account */}
+          {accountConnection && (
+            <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
+              {connStatus(accountConnection) === 'ok' ? (
+                <Wifi size={12} className="text-emerald-400" />
+              ) : connStatus(accountConnection) === 'error' ? (
+                <WifiOff size={12} className="text-red-400" />
+              ) : (
+                <Clock size={12} className="text-amber-400" />
+              )}
+              <span className={cn('text-[11px]',
+                connStatus(accountConnection) === 'ok' ? 'text-emerald-400' :
+                connStatus(accountConnection) === 'error' ? 'text-red-400' : 'text-amber-400'
+              )}>
+                Tradovate · {connLabel(accountConnection)}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Challenge progress card */}
+      {showChallengeCard && (
+        <div className="mb-6 bg-bg-surface border border-border rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm font-semibold text-zinc-200">Challenge Progress</div>
+            <span className="text-[11px] px-2 py-0.5 rounded-full border border-violet-400/30 text-violet-400 bg-violet-400/10 font-medium">
+              Eval
+            </span>
+          </div>
+          <div className="space-y-4">
+            {/* Profit target */}
+            {profitTarget != null && profitPct !== null && (
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-zinc-400">Profit Target</span>
+                  <span className="font-mono text-zinc-300">
+                    {formatCurrency(Math.max(0, totalPnl))} / {formatCurrency(profitTarget)}
+                    <span className="text-zinc-500 ml-1">({profitPct.toFixed(1)}%)</span>
+                  </span>
+                </div>
+                <div className="h-2 bg-bg-overlay rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-violet-500 transition-all"
+                    style={{ width: `${profitPct}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {/* Daily loss limit */}
+            {dailyLossLimit != null && dailyLossUsedPct !== null && (
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-zinc-400">Daily Loss Used</span>
+                  <span className="font-mono text-zinc-300">
+                    {formatCurrency(Math.abs(Math.min(0, todayPnl)))} / {formatCurrency(dailyLossLimit)}
+                    <span className={cn('ml-1', dailyLossUsedPct > 80 ? 'text-red-400' : 'text-zinc-500')}>
+                      ({(100 - dailyLossUsedPct).toFixed(0)}% remaining)
+                    </span>
+                  </span>
+                </div>
+                <div className="h-2 bg-bg-overlay rounded-full overflow-hidden">
+                  <div
+                    className={cn('h-full rounded-full transition-all', dailyLossUsedPct > 80 ? 'bg-red-500' : 'bg-emerald-500')}
+                    style={{ width: `${dailyLossUsedPct}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {/* Total loss limit */}
+            {totalLossLimit != null && totalLossUsedPct !== null && (
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-zinc-400">Max Loss Used</span>
+                  <span className="font-mono text-zinc-300">
+                    {formatCurrency(Math.abs(Math.min(0, totalPnl)))} / {formatCurrency(totalLossLimit)}
+                    <span className={cn('ml-1', totalLossUsedPct > 80 ? 'text-red-400' : 'text-zinc-500')}>
+                      ({(100 - totalLossUsedPct).toFixed(0)}% remaining)
+                    </span>
+                  </span>
+                </div>
+                <div className="h-2 bg-bg-overlay rounded-full overflow-hidden">
+                  <div
+                    className={cn('h-full rounded-full transition-all', totalLossUsedPct > 80 ? 'bg-red-500' : 'bg-emerald-500')}
+                    style={{ width: `${totalLossUsedPct}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

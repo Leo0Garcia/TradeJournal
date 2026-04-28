@@ -24,7 +24,27 @@ export interface Account {
   currency: string;
   account_type: AccountType;
   account_size: number | null;
+  // Challenge/eval fields (funded accounts only)
+  is_challenge: boolean;
+  profit_target: number | null;
+  daily_loss_limit: number | null;
+  total_loss_limit: number | null;
+  is_disabled: boolean;
+  challenge_passed: boolean;
   created_at: string;
+}
+
+export interface TradovateConnection {
+  id: string;
+  user_id: string;
+  account_id: string | null;
+  tradovate_account_id: number | null;
+  tradovate_account_name: string | null;
+  environment: 'live' | 'demo';
+  is_active: boolean;
+  last_sync_at: string | null;
+  sync_error: string | null;
+  last_fill_id: number;
 }
 
 export interface Exit {

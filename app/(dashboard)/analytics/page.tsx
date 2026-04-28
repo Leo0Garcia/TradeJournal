@@ -26,7 +26,9 @@ const CUSTOM_TOOLTIP_STYLE = {
     fontSize: 12,
     color: '#f4f4f5',
   },
+  wrapperStyle: { outline: 'none' },
   labelStyle: { color: '#71717a' },
+  cursor: { stroke: '#3f3f46', strokeWidth: 1 },
 };
 
 export default function AnalyticsPage() {
