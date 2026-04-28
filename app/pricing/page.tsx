@@ -132,10 +132,7 @@ export default function PricingPage() {
 
         {/* Footer note */}
         <p className="mt-10 text-xs text-zinc-600 text-center">
-          Questions? Reach out at{' '}
-          <a href="mailto:support@tradejournal.app" className="text-zinc-500 hover:text-zinc-300 transition-colors">
-            support@tradejournal.app
-          </a>
+          Questions? Reach out to your provider.
         </p>
       </div>
     </div>
