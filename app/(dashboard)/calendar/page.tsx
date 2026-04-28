@@ -126,7 +126,7 @@ export default function CalendarPage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-2"><div className="h-6 w-36 animate-pulse rounded-lg bg-bg-elevated" /><div className="h-4 w-48 animate-pulse rounded-lg bg-bg-elevated" /></div>
           <div className="flex gap-2"><div className="h-9 w-9 animate-pulse rounded-lg bg-bg-elevated" /><div className="h-9 w-36 animate-pulse rounded-lg bg-bg-elevated" /><div className="h-9 w-9 animate-pulse rounded-lg bg-bg-elevated" /></div>
@@ -138,7 +138,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -165,7 +165,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
         <StatCard
           label="Monthly P&L"
           value={data ? (data.totalPnl >= 0 ? '+' : '') + formatCurrency(data.totalPnl) : '—'}
@@ -204,7 +204,8 @@ export default function CalendarPage() {
       </div>
 
       {/* Calendar grid */}
-      <div className="bg-bg-surface border border-border rounded-xl overflow-hidden">
+      <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+      <div className="bg-bg-surface border border-border rounded-xl overflow-hidden min-w-[600px]">
         {/* Day-of-week headers */}
         <div className="grid grid-cols-8 border-b border-border">
           {DAYS_OF_WEEK.map(d => (
@@ -236,7 +237,7 @@ export default function CalendarPage() {
                   <div
                     key={di}
                     className={cn(
-                      'min-h-[80px] p-2 border border-transparent transition-all group relative',
+                      'min-h-[64px] p-1.5 border border-transparent transition-all group relative',
                       di < 6 && 'border-r border-border/30',
                       isWeekend && !day && 'bg-bg-overlay/20',
                       day ? dayBg(day.pnl) : 'hover:bg-bg-elevated/50',
@@ -275,7 +276,7 @@ export default function CalendarPage() {
 
               {/* Week total */}
               <div className={cn(
-                'min-h-[80px] p-2 border-l border-border flex flex-col justify-center items-center',
+                'min-h-[64px] p-1.5 border-l border-border flex flex-col justify-center items-center',
                 hasActivity ? '' : 'opacity-30'
               )}>
                 {hasActivity ? (
@@ -296,6 +297,8 @@ export default function CalendarPage() {
           );
         })}
       </div>
+
+      </div>{/* end scroll wrapper */}
 
       {/* Legend */}
       <div className="flex items-center gap-4 justify-end">

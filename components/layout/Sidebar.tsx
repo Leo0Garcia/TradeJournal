@@ -19,7 +19,12 @@ const navItems = [
   { href: '/calendar', label: 'P&L Calendar', icon: CalendarDays },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -53,26 +58,45 @@ export default function Sidebar() {
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Trader';
   const avatarLetter = displayName[0]?.toUpperCase() ?? 'T';
 
+  // Close mobile nav when a link is clicked
+  function handleNavClick() {
+    if (onMobileClose) onMobileClose();
+  }
+
   return (
     <aside
       className={cn(
-        'relative flex flex-col shrink-0 border-r border-border bg-bg-surface transition-all duration-200 ease-in-out',
-        collapsed ? 'w-14' : 'w-56'
+        'flex flex-col border-r border-border bg-bg-surface transition-all duration-300 ease-in-out',
+        // Mobile: fixed full-height drawer
+        'fixed inset-y-0 left-0 z-50 w-72',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        // Desktop: relative inline sidebar, no transform
+        'lg:relative lg:translate-x-0 lg:z-auto lg:inset-y-auto lg:left-auto',
+        collapsed ? 'lg:w-14' : 'lg:w-56',
       )}
     >
       {/* Logo */}
       <div className={cn(
-        'flex items-center h-16 border-b border-border',
+        'flex items-center h-16 border-b border-border shrink-0',
         collapsed ? 'justify-center px-0' : 'gap-2.5 px-5'
       )}>
         <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-accent shrink-0">
           <Zap size={14} className="text-white" />
         </div>
         {!collapsed && (
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-zinc-100 leading-none">TradeJournal</div>
             <div className="text-[10px] text-zinc-500 mt-0.5 uppercase tracking-wider">Free Plan</div>
           </div>
+        )}
+        {/* Mobile close button */}
+        {!collapsed && (
+          <button
+            onClick={onMobileClose}
+            className="lg:hidden p-1.5 text-zinc-500 hover:text-zinc-100 rounded-lg transition-colors shrink-0"
+          >
+            <ChevronLeft size={16} />
+          </button>
         )}
       </div>
 
@@ -85,6 +109,7 @@ export default function Sidebar() {
               key={href}
               href={href}
               title={collapsed ? label : undefined}
+              onClick={handleNavClick}
               className={cn(
                 'flex items-center rounded-lg text-sm font-medium transition-all duration-100',
                 collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2',
@@ -124,6 +149,7 @@ export default function Sidebar() {
         <Link
           href="/pricing"
           title={collapsed ? 'Pricing' : undefined}
+          onClick={handleNavClick}
           className={cn(
             'flex items-center rounded-lg text-sm transition-all',
             collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2',
@@ -145,6 +171,7 @@ export default function Sidebar() {
         <Link
           href="/settings"
           title={collapsed ? 'Settings' : undefined}
+          onClick={handleNavClick}
           className={cn(
             'flex items-center rounded-lg text-sm transition-all',
             collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2',

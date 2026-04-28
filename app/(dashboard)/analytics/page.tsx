@@ -80,7 +80,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="p-4 lg:p-6 max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-2"><div className="h-6 w-28 animate-pulse rounded-lg bg-bg-elevated" /><div className="h-4 w-40 animate-pulse rounded-lg bg-bg-elevated" /></div>
         </div>
@@ -95,7 +95,7 @@ export default function AnalyticsPage() {
   if (!data) return null;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 lg:p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -118,7 +118,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Key metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           label="Win Rate"
           value={stats ? formatPercent(stats.winRate) : '—'}
@@ -148,8 +148,8 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Equity curve + Drawdown */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 space-y-4">
           {/* Equity Curve */}
           <div className="bg-bg-surface border border-border rounded-xl p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -283,7 +283,7 @@ export default function AnalyticsPage() {
             <Tag size={14} className="text-accent-light" />
             <span className="text-sm font-semibold text-zinc-200">Setup Tag Performance</span>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {data.tagPerformance.map(tp => (
               <div key={tp.tag.id} className="bg-bg-overlay rounded-xl border border-border p-4">
                 <div

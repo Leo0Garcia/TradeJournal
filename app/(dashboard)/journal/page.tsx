@@ -175,7 +175,7 @@ export default function JournalPage() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 lg:p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -279,8 +279,50 @@ export default function JournalPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-bg-surface border border-border rounded-xl overflow-hidden">
+      {/* Mobile card view */}
+      <div className="lg:hidden space-y-2 mb-4">
+        {filtered.length === 0 && (
+          <div className="bg-bg-surface border border-border rounded-xl px-4 py-10 text-center text-sm text-zinc-600">
+            {trades.length === 0 ? 'No trades yet. Log your first trade!' : 'No trades match your filters.'}
+          </div>
+        )}
+        {filtered.map(trade => (
+          <button
+            key={trade.id}
+            onClick={() => setDetailTrade(trade)}
+            className="w-full bg-bg-surface border border-border rounded-xl p-4 text-left hover:border-border-strong transition-colors"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${trade.direction === 'long' ? 'bg-profit/10 text-profit' : 'bg-loss/10 text-loss'}`}>
+                  {trade.direction === 'long' ? 'LONG' : 'SHORT'}
+                </span>
+                <span className="font-bold text-zinc-100">{trade.symbol}</span>
+                <span className="text-xs text-zinc-500">{formatDate(trade.trade_date)}</span>
+              </div>
+              {trade.status === 'open' ? (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">Open</span>
+              ) : (
+                <span className={cn('font-mono font-bold text-sm', pnlColor(trade.net_pnl))}>
+                  {trade.net_pnl >= 0 ? '+' : ''}{formatCurrency(trade.net_pnl)}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center justify-between text-xs text-zinc-500">
+              <span className="font-mono">{trade.entry_price.toLocaleString()} → {trade.exits.length > 0 ? trade.exits[trade.exits.length - 1].exit_price.toLocaleString() : '—'}</span>
+              <span>{trade.initial_size} contracts</span>
+            </div>
+            {trade.tags.length > 0 && (
+              <div className="flex gap-1 flex-wrap mt-2">
+                {trade.tags.slice(0, 3).map(tag => <TagBadge key={tag.id} tag={tag} />)}
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden lg:block bg-bg-surface border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -393,6 +435,7 @@ export default function JournalPage() {
           </table>
         </div>
       </div>
+      {/* end desktop table */}
 
       {/* Modals */}
       <NewTradeModal open={showNewTrade} onClose={() => setShowNewTrade(false)} onSave={handleNewTrade} />

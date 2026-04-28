@@ -251,38 +251,41 @@ function SettingsPage() {
   const avatarLetter = displayName[0]?.toUpperCase() ?? 'T';
 
   return (
-    <div className="flex h-full min-h-screen">
-      {/* ── Left nav ── */}
-      <div className="w-52 shrink-0 border-r border-border bg-bg-surface flex flex-col p-3 gap-0.5">
-        <div className="px-3 py-3 mb-1">
+    <div className="flex flex-col lg:flex-row h-full min-h-screen">
+      {/* ── Section nav: sidebar on desktop, horizontal tabs on mobile ── */}
+      <div className="lg:w-52 lg:shrink-0 lg:border-r border-b lg:border-b-0 border-border bg-bg-surface lg:flex lg:flex-col p-3 gap-0.5">
+        <div className="px-3 py-2 mb-1 hidden lg:block">
           <h1 className="text-sm font-bold text-zinc-100">Settings</h1>
           <p className="text-[11px] text-zinc-500 mt-0.5">Manage your workspace</p>
         </div>
-        {SECTIONS.map(s => (
-          <button
-            key={s.id}
-            onClick={() => setSection(s.id)}
-            className={cn(
-              'flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm transition-all text-left',
-              section === s.id
-                ? 'bg-accent/10 text-accent-light font-medium'
-                : 'text-zinc-400 hover:text-zinc-100 hover:bg-bg-elevated'
-            )}
-          >
-            <s.icon size={14} className="shrink-0" />
-            <span className="flex-1">{s.label}</span>
-            {s.badge && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-zinc-700/60 text-zinc-500 border border-zinc-600/40 font-medium leading-none uppercase tracking-wide">
-                soon
-              </span>
-            )}
-          </button>
-        ))}
+        {/* Mobile: horizontal scrolling tab row */}
+        <div className="flex lg:flex-col gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+          {SECTIONS.map(s => (
+            <button
+              key={s.id}
+              onClick={() => setSection(s.id)}
+              className={cn(
+                'flex items-center gap-2 shrink-0 lg:w-full px-3 py-2 rounded-lg text-sm transition-all text-left whitespace-nowrap',
+                section === s.id
+                  ? 'bg-accent/10 text-accent-light font-medium'
+                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-bg-elevated'
+              )}
+            >
+              <s.icon size={14} className="shrink-0" />
+              <span className="flex-1">{s.label}</span>
+              {s.badge && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-zinc-700/60 text-zinc-500 border border-zinc-600/40 font-medium leading-none uppercase tracking-wide hidden lg:inline">
+                  soon
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Right content ── */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl p-8 space-y-6">
+        <div className="max-w-2xl p-4 lg:p-8 space-y-6">
 
           {/* ── GENERAL ── */}
           {section === 'general' && (

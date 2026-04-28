@@ -218,7 +218,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 lg:p-6 max-w-7xl mx-auto">
       {/* Page header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -462,7 +462,7 @@ export default function DashboardPage() {
       )}
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard
           label="Today's P&L"
           value={stats ? formatCurrency(stats.todayPnl) : '—'}
@@ -493,15 +493,15 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-3 gap-3 mb-4">
         <StatCard label="Week P&L" value={stats ? formatCurrency(stats.weekPnl) : '—'} trend={stats ? (stats.weekPnl >= 0 ? 'up' : 'down') : 'neutral'} />
         <StatCard label="Largest Win" value={stats ? formatCurrency(stats.largestWin) : '—'} icon={ArrowUpRight} trend="up" />
         <StatCard label="Largest Loss" value={stats ? formatCurrency(stats.largestLoss) : '—'} icon={ArrowDownRight} trend="down" />
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Equity curve */}
-        <div className="col-span-2 bg-bg-surface border border-border rounded-xl p-5">
+        <div className="lg:col-span-2 bg-bg-surface border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="text-sm font-semibold text-zinc-200">Equity Curve</div>
             <div className="text-xs text-zinc-500">{curve.length} trading days</div>
@@ -611,19 +611,23 @@ export default function DashboardPage() {
               <button
                 key={trade.id}
                 onClick={() => setDetailTrade(trade)}
-                className="w-full flex items-center gap-4 px-5 py-3 hover:bg-bg-elevated transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-elevated transition-colors text-left"
               >
-                <div className={`text-sm font-bold ${trade.direction === 'long' ? 'text-profit' : 'text-loss'} w-12`}>
-                  {trade.direction === 'long' ? 'LONG' : 'SHORT'}
+                {/* Direction + Symbol */}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className={`text-xs font-bold shrink-0 ${trade.direction === 'long' ? 'text-profit' : 'text-loss'}`}>
+                    {trade.direction === 'long' ? 'L' : 'S'}
+                  </div>
+                  <div className="font-semibold text-zinc-100 shrink-0">{trade.symbol}</div>
+                  <div className="font-mono text-xs text-zinc-500 truncate hidden sm:block">
+                    {trade.entry_price.toLocaleString()} → {trade.exits.length > 0 ? trade.exits[trade.exits.length - 1].exit_price.toLocaleString() : '—'}
+                  </div>
+                  <div className="flex gap-1 hidden md:flex">
+                    {trade.tags.slice(0, 2).map(tag => <TagBadge key={tag.id} tag={tag} />)}
+                  </div>
                 </div>
-                <div className="font-semibold text-zinc-100 w-20">{trade.symbol}</div>
-                <div className="font-mono text-sm text-zinc-400 flex-1">
-                  {trade.entry_price.toLocaleString()} → {trade.exits.length > 0 ? trade.exits[trade.exits.length - 1].exit_price.toLocaleString() : '—'}
-                </div>
-                <div className="flex flex-wrap gap-1 flex-1">
-                  {trade.tags.slice(0, 3).map(tag => <TagBadge key={tag.id} tag={tag} />)}
-                </div>
-                <div className={cn('font-mono font-bold text-sm w-24 text-right', pnlColor(trade.net_pnl))}>
+                {/* P&L */}
+                <div className={cn('font-mono font-bold text-sm shrink-0', pnlColor(trade.net_pnl))}>
                   {trade.net_pnl >= 0 ? '+' : ''}{formatCurrency(trade.net_pnl)}
                 </div>
               </button>
