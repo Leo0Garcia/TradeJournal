@@ -54,11 +54,19 @@ export async function GET(req: NextRequest) {
     tags: ((t.trade_tags as { tags: Tag }[]) ?? []).map(tt => tt.tags).filter(Boolean) as Tag[],
   }));
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Use client-supplied date to avoid UTC/timezone mismatch; fall back to server UTC
+  const today = searchParams.get('today') ?? new Date().toISOString().slice(0, 10);
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
 
-  const todayTrades = trades.filter(t => t.trade_date.slice(0, 10) === today);
-  const weekTrades = trades.filter(t => t.trade_date.slice(0, 10) >= weekAgo);
+  // Filter today by closed_at date (when trade was actually closed), not trade_date (when opened)
+  const todayTrades = trades.filter(t => {
+    const closeDate = t.closed_at ? t.closed_at.slice(0, 10) : t.trade_date.slice(0, 10);
+    return closeDate === today;
+  });
+  const weekTrades = trades.filter(t => {
+    const closeDate = t.closed_at ? t.closed_at.slice(0, 10) : t.trade_date.slice(0, 10);
+    return closeDate >= weekAgo;
+  });
   const wins = trades.filter(t => t.net_pnl > 0);
   const losses = trades.filter(t => t.net_pnl < 0);
 

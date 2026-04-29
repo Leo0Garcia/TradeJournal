@@ -64,7 +64,7 @@ export default function DashboardPage() {
     setLoading(true);
     const ap = accountParamsStr ? `&${accountParamsStr}` : '';
     const [analytics, open, recent, tags, conns] = await Promise.all([
-      fetch(`/api/analytics?${accountParamsStr}`).then(r => r.json()),
+      fetch(`/api/analytics?${accountParamsStr}&today=${new Date().toLocaleDateString('en-CA')}`).then(r => r.json()),
       fetch(`/api/trades?status=open${ap}`).then(r => r.json()),
       fetch(`/api/trades?status=closed${ap}`).then(r => r.json()),
       fetch('/api/tags').then(r => r.json()),
@@ -653,6 +653,7 @@ export default function DashboardPage() {
           onDelete={handleDelete}
           onTagsChange={handleTagsChange}
           onNotesChange={handleNotesChange}
+          onRefresh={load}
         />
       )}
     </div>

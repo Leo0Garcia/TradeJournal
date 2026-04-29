@@ -455,6 +455,7 @@ export default function JournalPage() {
           onDelete={handleDelete}
           onTagsChange={handleTagsChange}
           onNotesChange={handleNotesChange}
+          onRefresh={load}
         />
       )}
     </div>
