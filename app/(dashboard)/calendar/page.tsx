@@ -110,18 +110,18 @@ export default function CalendarPage() {
     ? Math.max(...data.days.map(d => Math.abs(d.pnl)), 1)
     : 1;
 
-  function dayBg(pnl: number) {
+  function dayBg(pnl: number): string {
     const intensity = Math.min(Math.abs(pnl) / maxAbs, 1);
     if (pnl > 0) {
-      if (intensity > 0.7) return 'bg-profit/30 border-profit/40';
-      if (intensity > 0.35) return 'bg-profit/20 border-profit/25';
-      return 'bg-profit/10 border-profit/15';
+      if (intensity > 0.7) return 'bg-profit/[28%]';
+      if (intensity > 0.35) return 'bg-profit/[15%]';
+      return 'bg-profit/[7%]';
     } else if (pnl < 0) {
-      if (intensity > 0.7) return 'bg-loss/30 border-loss/40';
-      if (intensity > 0.35) return 'bg-loss/20 border-loss/25';
-      return 'bg-loss/10 border-loss/15';
+      if (intensity > 0.7) return 'bg-loss/[28%]';
+      if (intensity > 0.35) return 'bg-loss/[15%]';
+      return 'bg-loss/[7%]';
     }
-    return 'bg-transparent border-border/50';
+    return '';
   }
 
   if (loading) {
@@ -205,15 +205,15 @@ export default function CalendarPage() {
 
       {/* Calendar grid */}
       <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
-      <div className="bg-bg-surface border border-border rounded-xl overflow-hidden min-w-[600px]">
+      <div className="bg-bg-surface border border-border rounded-xl overflow-hidden min-w-[580px]">
         {/* Day-of-week headers */}
-        <div className="grid grid-cols-8 border-b border-border">
+        <div className="border-b border-border" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr) 80px' }}>
           {DAYS_OF_WEEK.map(d => (
-            <div key={d} className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+            <div key={d} style={{ padding: '10px 6px', textAlign: 'center', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }} className="text-zinc-600">
               {d}
             </div>
           ))}
-          <div className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-widest text-zinc-600 border-l border-border">
+          <div style={{ padding: '10px 6px', textAlign: 'center', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }} className="text-zinc-600 border-l border-border">
             Week
           </div>
         </div>
@@ -223,35 +223,39 @@ export default function CalendarPage() {
           const wPnl = weekPnl(week);
           const hasActivity = week.some(d => d && dayMap[dateStr(d)]);
           return (
-            <div key={wi} className={cn('grid grid-cols-8', wi < weeks.length - 1 && 'border-b border-border')}>
+            <div key={wi} className={cn(wi < weeks.length - 1 && 'border-b border-border')} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr) 80px' }}>
               {week.map((dayNum, di) => {
                 if (!dayNum) {
-                  return <div key={di} className="min-h-[80px] bg-bg-overlay/30 border-r border-border/30" />;
+                  return (
+                    <div key={di} className="bg-bg-overlay/20 border-r border-b border-border/20"
+                      style={{ minHeight: 60, borderRight: di < 6 ? '1px solid rgba(var(--border)/0.3)' : undefined, borderBottom: wi < weeks.length - 1 ? '1px solid rgba(var(--border)/0.2)' : undefined }} />
+                  );
                 }
                 const ds = dateStr(dayNum);
                 const day = dayMap[ds];
                 const isToday = isCurrentMonth && ds === todayStr;
-                const isWeekend = di >= 5; // Sat/Sun
+                const isWeekend = di >= 5;
 
                 return (
                   <div
                     key={di}
+                    style={{
+                      minHeight: 60,
+                      padding: 6,
+                      borderRight: di < 6 ? '1px solid rgb(var(--border) / 0.25)' : undefined,
+                      borderBottom: wi < weeks.length - 1 ? '1px solid rgb(var(--border) / 0.2)' : undefined,
+                      transition: 'background 0.12s',
+                      boxShadow: isToday ? 'inset 0 0 0 2px rgb(var(--accent))' : undefined,
+                    }}
                     className={cn(
-                      'min-h-[64px] p-1.5 border border-transparent transition-all group relative',
-                      di < 6 && 'border-r border-border/30',
-                      isWeekend && !day && 'bg-bg-overlay/20',
-                      day ? dayBg(day.pnl) : 'hover:bg-bg-elevated/50',
-                      isToday && 'ring-1 ring-inset ring-accent/50'
+                      'relative',
+                      isWeekend && !day ? 'bg-black/[0.12] dark:bg-black/[0.15]' : '',
+                      day ? dayBg(day.pnl) : '',
                     )}
                   >
                     {/* Day number */}
-                    <div className={cn(
-                      'text-xs font-semibold mb-1.5',
-                      isToday
-                        ? 'text-accent-light'
-                        : isWeekend
-                        ? 'text-zinc-600'
-                        : 'text-zinc-500'
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 3 }} className={cn(
+                      isToday ? 'text-accent-light' : isWeekend ? 'text-zinc-600' : 'text-zinc-500'
                     )}>
                       {dayNum}
                     </div>
@@ -259,13 +263,13 @@ export default function CalendarPage() {
                     {/* P&L value */}
                     {day && (
                       <>
-                        <div className={cn(
-                          'text-sm font-bold font-mono leading-tight',
+                        <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.15 }} className={cn(
+                          'font-mono',
                           day.pnl >= 0 ? 'text-profit' : 'text-loss'
                         )}>
-                          {day.pnl >= 0 ? '+' : ''}{formatCurrency(day.pnl)}
+                          {day.pnl >= 0 ? '+' : ''}{formatCurrency(day.pnl, true)}
                         </div>
-                        <div className="text-[10px] text-zinc-500 mt-0.5">
+                        <div style={{ fontSize: 10, marginTop: 2 }} className="text-zinc-500">
                           {day.trades} trade{day.trades !== 1 ? 's' : ''}
                         </div>
                       </>
@@ -275,41 +279,43 @@ export default function CalendarPage() {
               })}
 
               {/* Week total */}
-              <div className={cn(
-                'min-h-[64px] p-1.5 border-l border-border flex flex-col justify-center items-center',
-                hasActivity ? '' : 'opacity-30'
-              )}>
+              <div
+                style={{ minHeight: 60, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: 6 }}
+                className={cn('border-l border-border', !hasActivity && 'opacity-30')}
+              >
                 {hasActivity ? (
                   <>
-                    <div className={cn(
-                      'text-xs font-bold font-mono',
-                      wPnl >= 0 ? 'text-profit' : 'text-loss'
-                    )}>
-                      {wPnl >= 0 ? '+' : ''}{formatCurrency(wPnl)}
+                    <div style={{ fontSize: 13, fontWeight: 700 }} className={cn('font-mono', wPnl >= 0 ? 'text-profit' : 'text-loss')}>
+                      {wPnl >= 0 ? '+' : ''}{formatCurrency(wPnl, true)}
                     </div>
-                    <div className="text-[10px] text-zinc-600 mt-0.5">week</div>
+                    <div style={{ fontSize: 9, marginTop: 2 }} className="text-zinc-600">week</div>
                   </>
                 ) : (
-                  <span className="text-[10px] text-zinc-700">—</span>
+                  <span style={{ fontSize: 10 }} className="text-zinc-700">—</span>
                 )}
               </div>
             </div>
           );
         })}
       </div>
-
       </div>{/* end scroll wrapper */}
 
       {/* Legend */}
-      <div className="flex items-center gap-4 justify-end">
-        <span className="text-xs text-zinc-600">Intensity:</span>
-        {[0.1, 0.25, 0.5, 1].map((opacity, i) => (
-          <div key={i} className="flex items-center gap-1.5">
-            <div className={`w-3 h-3 rounded-sm`} style={{ background: `rgba(var(--color-profit-rgb, 52 211 153) / ${opacity})` }} />
-            <div className={`w-3 h-3 rounded-sm`} style={{ background: `rgba(var(--color-loss-rgb, 239 68 68) / ${opacity})` }} />
-          </div>
-        ))}
-        <span className="text-xs text-zinc-600">→ higher</span>
+      <div className="flex items-center gap-3 justify-end text-xs text-zinc-600">
+        <span>Intensity:</span>
+        <div className="flex items-center gap-1.5">
+          {[
+            { label: 'Low', profitOpacity: '7%', lossOpacity: '7%' },
+            { label: 'Mid', profitOpacity: '15%', lossOpacity: '15%' },
+            { label: 'High', profitOpacity: '28%', lossOpacity: '28%' },
+          ].map(({ label, profitOpacity, lossOpacity }, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-sm" style={{ background: `rgb(var(--profit) / ${profitOpacity})` }} />
+              <div className="w-3 h-3 rounded-sm" style={{ background: `rgb(var(--loss) / ${lossOpacity})` }} />
+            </div>
+          ))}
+        </div>
+        <span>→ higher</span>
       </div>
     </div>
   );
