@@ -110,18 +110,16 @@ export default function CalendarPage() {
     ? Math.max(...data.days.map(d => Math.abs(d.pnl)), 1)
     : 1;
 
-  function dayBg(pnl: number): string {
+  function dayBgStyle(pnl: number): React.CSSProperties {
     const intensity = Math.min(Math.abs(pnl) / maxAbs, 1);
     if (pnl > 0) {
-      if (intensity > 0.7) return 'bg-profit/[28%]';
-      if (intensity > 0.35) return 'bg-profit/[15%]';
-      return 'bg-profit/[7%]';
+      const opacity = intensity > 0.7 ? 0.28 : intensity > 0.35 ? 0.15 : 0.07;
+      return { backgroundColor: `rgba(34, 197, 94, ${opacity})` };
     } else if (pnl < 0) {
-      if (intensity > 0.7) return 'bg-loss/[28%]';
-      if (intensity > 0.35) return 'bg-loss/[15%]';
-      return 'bg-loss/[7%]';
+      const opacity = intensity > 0.7 ? 0.28 : intensity > 0.35 ? 0.15 : 0.07;
+      return { backgroundColor: `rgba(239, 68, 68, ${opacity})` };
     }
-    return '';
+    return {};
   }
 
   if (loading) {
@@ -227,51 +225,56 @@ export default function CalendarPage() {
               {week.map((dayNum, di) => {
                 if (!dayNum) {
                   return (
-                    <div key={di} className="bg-bg-overlay/20 border-r border-b border-border/20"
-                      style={{ minHeight: 60, borderRight: di < 6 ? '1px solid rgba(var(--border)/0.3)' : undefined, borderBottom: wi < weeks.length - 1 ? '1px solid rgba(var(--border)/0.2)' : undefined }} />
+                    <div key={di} style={{
+                      minHeight: 64,
+                      backgroundColor: 'rgba(0,0,0,0.08)',
+                      borderRight: di < 6 ? '1px solid rgba(63,63,70,0.3)' : undefined,
+                      borderBottom: wi < weeks.length - 1 ? '1px solid rgba(63,63,70,0.2)' : undefined,
+                    }} />
                   );
                 }
                 const ds = dateStr(dayNum);
                 const day = dayMap[ds];
                 const isToday = isCurrentMonth && ds === todayStr;
                 const isWeekend = di >= 5;
+                const winRate = day && day.trades > 0
+                  ? Math.round((day.wins / day.trades) * 100)
+                  : null;
 
                 return (
                   <div
                     key={di}
                     style={{
-                      minHeight: 60,
+                      minHeight: 64,
                       padding: 6,
-                      borderRight: di < 6 ? '1px solid rgb(var(--border) / 0.25)' : undefined,
-                      borderBottom: wi < weeks.length - 1 ? '1px solid rgb(var(--border) / 0.2)' : undefined,
+                      borderRight: di < 6 ? '1px solid rgba(63,63,70,0.3)' : undefined,
+                      borderBottom: wi < weeks.length - 1 ? '1px solid rgba(63,63,70,0.2)' : undefined,
                       transition: 'background 0.12s',
-                      boxShadow: isToday ? 'inset 0 0 0 2px rgb(var(--accent))' : undefined,
+                      boxShadow: isToday ? 'inset 0 0 0 2px #7c3aed' : undefined,
+                      backgroundColor: day
+                        ? dayBgStyle(day.pnl).backgroundColor
+                        : isWeekend ? 'rgba(0,0,0,0.08)' : undefined,
                     }}
-                    className={cn(
-                      'relative',
-                      isWeekend && !day ? 'bg-black/[0.12] dark:bg-black/[0.15]' : '',
-                      day ? dayBg(day.pnl) : '',
-                    )}
                   >
                     {/* Day number */}
-                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 3 }} className={cn(
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 2 }} className={cn(
                       isToday ? 'text-accent-light' : isWeekend ? 'text-zinc-600' : 'text-zinc-500'
                     )}>
                       {dayNum}
                     </div>
 
-                    {/* P&L value */}
+                    {/* P&L + win rate */}
                     {day && (
                       <>
-                        <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.15 }} className={cn(
-                          'font-mono',
-                          day.pnl >= 0 ? 'text-profit' : 'text-loss'
-                        )}>
+                        <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2, fontFamily: 'JetBrains Mono, monospace' }}
+                          className={day.pnl >= 0 ? 'text-profit' : 'text-loss'}>
                           {day.pnl >= 0 ? '+' : ''}{formatCurrency(day.pnl, true)}
                         </div>
-                        <div style={{ fontSize: 10, marginTop: 2 }} className="text-zinc-500">
-                          {day.trades} trade{day.trades !== 1 ? 's' : ''}
-                        </div>
+                        {winRate !== null && (
+                          <div style={{ fontSize: 10, marginTop: 2, color: '#71717a' }}>
+                            {winRate}% win
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -304,14 +307,10 @@ export default function CalendarPage() {
       <div className="flex items-center gap-3 justify-end text-xs text-zinc-600">
         <span>Intensity:</span>
         <div className="flex items-center gap-1.5">
-          {[
-            { label: 'Low', profitOpacity: '7%', lossOpacity: '7%' },
-            { label: 'Mid', profitOpacity: '15%', lossOpacity: '15%' },
-            { label: 'High', profitOpacity: '28%', lossOpacity: '28%' },
-          ].map(({ label, profitOpacity, lossOpacity }, i) => (
+          {[0.07, 0.15, 0.28].map((op, i) => (
             <div key={i} className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-sm" style={{ background: `rgb(var(--profit) / ${profitOpacity})` }} />
-              <div className="w-3 h-3 rounded-sm" style={{ background: `rgb(var(--loss) / ${lossOpacity})` }} />
+              <div className="w-3 h-3 rounded-sm" style={{ background: `rgba(34,197,94,${op})` }} />
+              <div className="w-3 h-3 rounded-sm" style={{ background: `rgba(239,68,68,${op})` }} />
             </div>
           ))}
         </div>
