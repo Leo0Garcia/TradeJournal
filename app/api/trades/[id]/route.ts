@@ -30,8 +30,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   }
 
-  if (body.notes !== undefined) {
-    await supabase.from('trades').update({ notes: body.notes }).eq('id', params.id);
+  const directFields = ['notes', 'emotion_before', 'emotion_during', 'emotion_after', 'followed_rules', 'psychology_notes'];
+  const updates: Record<string, unknown> = {};
+  for (const f of directFields) {
+    if (body[f] !== undefined) updates[f] = body[f];
+  }
+  if (Object.keys(updates).length > 0) {
+    await supabase.from('trades').update(updates).eq('id', params.id);
   }
 
   const { data } = await supabase

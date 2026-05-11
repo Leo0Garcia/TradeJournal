@@ -72,6 +72,11 @@ export interface Trade {
   stop_loss: number | null;
   take_profit: number | null;
   notes: string;
+  emotion_before: string | null;
+  emotion_during: string | null;
+  emotion_after: string | null;
+  followed_rules: boolean | null;
+  psychology_notes: string | null;
   gross_pnl: number;
   fees: number;
   net_pnl: number;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, LogOut, Trash2, ChevronRight, ArrowUpRight, ArrowDownRight, Pencil, Check } from 'lucide-react';
+import { X, LogOut, Trash2, ChevronRight, ArrowUpRight, ArrowDownRight, Pencil, Check, Brain } from 'lucide-react';
 import TagBadge from '@/components/ui/TagBadge';
 import { formatCurrency, formatDateTime, formatDate, pnlColor, cn } from '@/lib/utils';
 import type { Trade, Tag } from '@/types';
@@ -17,6 +17,17 @@ interface Props {
   onRefresh?: () => void;
 }
 
+const EMOTIONS = [
+  { emoji: '😌', label: 'Calm' },
+  { emoji: '😤', label: 'Confident' },
+  { emoji: '😰', label: 'Anxious' },
+  { emoji: '😨', label: 'Fearful' },
+  { emoji: '🤩', label: 'Excited' },
+  { emoji: '😤', label: 'Frustrated' },
+  { emoji: '🤔', label: 'Uncertain' },
+  { emoji: '😐', label: 'Neutral' },
+];
+
 interface ExitEditForm {
   exit_price: string;
   size: string;
@@ -28,6 +39,15 @@ interface ExitEditForm {
 export default function TradeDetailPanel({ trade, allTags, onClose, onAddExit, onDelete, onTagsChange, onNotesChange, onRefresh }: Props) {
   const [notes, setNotes] = useState(trade?.notes ?? '');
   const [notesSaved, setNotesSaved] = useState(false);
+
+  // Psychology state
+  const [emotionBefore, setEmotionBefore] = useState(trade?.emotion_before ?? null as string | null);
+  const [emotionDuring, setEmotionDuring] = useState(trade?.emotion_during ?? null as string | null);
+  const [emotionAfter, setEmotionAfter] = useState(trade?.emotion_after ?? null as string | null);
+  const [followedRules, setFollowedRules] = useState(trade?.followed_rules ?? null as boolean | null);
+  const [psychNotes, setPsychNotes] = useState(trade?.psychology_notes ?? '');
+  const [psychSaved, setPsychSaved] = useState(false);
+
   const [editingExitId, setEditingExitId] = useState<string | null>(null);
   const [exitForm, setExitForm] = useState<ExitEditForm>({ exit_price: '', size: '', pnl: '', notes: '', exit_date: '' });
   const [savingExit, setSavingExit] = useState(false);
@@ -40,6 +60,29 @@ export default function TradeDetailPanel({ trade, allTags, onClose, onAddExit, o
     onNotesChange(trade!.id, notes);
     setNotesSaved(true);
     setTimeout(() => setNotesSaved(false), 1500);
+  }
+
+  async function savePsychology(overrides?: Partial<{
+    emotion_before: string | null;
+    emotion_during: string | null;
+    emotion_after: string | null;
+    followed_rules: boolean | null;
+    psychology_notes: string;
+  }>) {
+    await fetch(`/api/trades/${trade!.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        emotion_before: overrides?.emotion_before !== undefined ? overrides.emotion_before : emotionBefore,
+        emotion_during: overrides?.emotion_during !== undefined ? overrides.emotion_during : emotionDuring,
+        emotion_after: overrides?.emotion_after !== undefined ? overrides.emotion_after : emotionAfter,
+        followed_rules: overrides?.followed_rules !== undefined ? overrides.followed_rules : followedRules,
+        psychology_notes: overrides?.psychology_notes !== undefined ? overrides.psychology_notes : psychNotes,
+      }),
+    });
+    setPsychSaved(true);
+    setTimeout(() => setPsychSaved(false), 1500);
+    onRefresh?.();
   }
 
   function toggleTag(tagId: string) {
@@ -295,9 +338,91 @@ export default function TradeDetailPanel({ trade, allTags, onClose, onAddExit, o
             )}
           </div>
 
+          {/* Psychology */}
+          <div>
+            <div className="flex items-center gap-1.5 mb-3">
+              <Brain size={12} className="text-accent-light" />
+              <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Psychology</span>
+            </div>
+
+            <div className="bg-bg-overlay rounded-xl border border-border p-4 space-y-4">
+              {/* Emotion pickers */}
+              {(
+                [
+                  { label: 'Before trade', key: 'before', value: emotionBefore, set: (v: string | null) => { setEmotionBefore(v); savePsychology({ emotion_before: v }); } },
+                  { label: 'During trade', key: 'during', value: emotionDuring, set: (v: string | null) => { setEmotionDuring(v); savePsychology({ emotion_during: v }); } },
+                  { label: 'After trade',  key: 'after',  value: emotionAfter,  set: (v: string | null) => { setEmotionAfter(v);  savePsychology({ emotion_after: v });  } },
+                ] as const
+              ).map(({ label, key, value, set }) => (
+                <div key={key}>
+                  <div className="text-[11px] text-zinc-500 mb-1.5">{label}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {EMOTIONS.map(e => (
+                      <button
+                        key={e.label}
+                        onClick={() => set(value === e.label ? null : e.label)}
+                        title={e.label}
+                        className={cn(
+                          'flex items-center gap-1 px-2 py-1 rounded-lg border text-xs transition-all',
+                          value === e.label
+                            ? 'border-accent bg-accent/10 text-accent-light'
+                            : 'border-border text-zinc-400 hover:border-border-strong hover:text-zinc-200'
+                        )}
+                      >
+                        <span>{e.emoji}</span>
+                        <span>{e.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Followed rules */}
+              <div>
+                <div className="text-[11px] text-zinc-500 mb-1.5">Did you follow your rules?</div>
+                <div className="flex gap-2">
+                  {[{ label: '✅ Yes', val: true }, { label: '❌ No', val: false }].map(({ label, val }) => (
+                    <button
+                      key={label}
+                      onClick={() => {
+                        const next = followedRules === val ? null : val;
+                        setFollowedRules(next);
+                        savePsychology({ followed_rules: next });
+                      }}
+                      className={cn(
+                        'flex-1 py-1.5 rounded-lg border text-xs font-medium transition-all',
+                        followedRules === val
+                          ? val
+                            ? 'border-profit bg-profit/10 text-profit'
+                            : 'border-loss bg-loss/10 text-loss'
+                          : 'border-border text-zinc-400 hover:border-border-strong hover:text-zinc-200'
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Psychology notes */}
+              <div>
+                <div className="text-[11px] text-zinc-500 mb-1.5">Reflection notes</div>
+                <textarea
+                  value={psychNotes}
+                  onChange={e => setPsychNotes(e.target.value)}
+                  onBlur={() => savePsychology()}
+                  placeholder="What happened? What would you do differently? Any lessons learned?"
+                  rows={3}
+                  className="w-full bg-bg-base border border-border rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-accent placeholder:text-zinc-600 resize-none"
+                />
+                {psychSaved && <p className="text-[10px] text-profit mt-1">Saved</p>}
+              </div>
+            </div>
+          </div>
+
           {/* Notes */}
           <div>
-            <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">Notes</div>
+            <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider mb-2">Trade Notes</div>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
